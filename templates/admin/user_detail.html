@@ -1,0 +1,423 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ user_obj.get_full_name|default:user_obj.username }} - User Details - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="text-primary mb-1">
+                        <i class="bi bi-person-circle"></i> {{ user_obj.get_full_name|default:user_obj.username }}
+                    </h2>
+                    <p class="text-muted mb-0">User Details and Management</p>
+                </div>
+                <div>
+                    <a href="{% url 'admin_users' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Users
+                    </a>
+                    <a href="{% url 'profile_view_user' user_obj.username %}" class="btn btn-info" target="_blank">
+                        <i class="bi bi-person"></i> View Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- User Information -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> User Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <strong>Username:</strong> {{ user_obj.username }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Email:</strong> {{ user_obj.email }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Full Name:</strong> {{ user_obj.get_full_name|default:"Not provided" }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Role:</strong>
+                                {% if user_obj.role == 'admin' %}
+                                    <span class="badge bg-danger">Admin</span>
+                                {% elif user_obj.role == 'journalist' %}
+                                    <span class="badge bg-info">Journalist</span>
+                                {% elif user_obj.role == 'politician' %}
+                                    <span class="badge bg-warning">Politician</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">User</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <strong>Status:</strong>
+                                {% if user_obj.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Identity Verified:</strong>
+                                {% if user_obj.identity_confirmed %}
+                                    <span class="badge bg-success">Verified</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Unverified</span>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Ban Status:</strong>
+                                {% if user_obj.is_banned %}
+                                    <span class="badge bg-danger">Banned</span>
+                                    {% if user_obj.ban_reason %}
+                                        <br><small class="text-muted">Reason: {{ user_obj.ban_reason }}</small>
+                                    {% endif %}
+                                    {% if user_obj.banned_at %}
+                                        <br><small class="text-muted">Banned on: {{ user_obj.banned_at|date:"M d, Y H:i" }}</small>
+                                    {% endif %}
+                                    {% if user_obj.banned_by %}
+                                        <br><small class="text-muted">Banned by: {{ user_obj.banned_by.username }}</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-success">Not Banned</span>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Date Joined:</strong> {{ user_obj.date_joined|date:"M d, Y H:i" }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Last Login:</strong>
+                                {% if user_obj.last_login %}
+                                    {{ user_obj.last_login|date:"M d, Y H:i" }}
+                                {% else %}
+                                    Never
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- User Posts -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-post"></i> Recent Posts ({{ user_posts.count }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if user_posts %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for post in user_posts %}
+                                        <tr>
+                                            <td>
+                                                <div class="fw-bold">{{ post.title|truncatechars:50 }}</div>
+                                                <small class="text-muted">{{ post.description|truncatechars:80 }}</small>
+                                            </td>
+                                            <td>
+                                                {% if post.status == 'published' %}
+                                                    <span class="badge bg-success">Published</span>
+                                                {% elif post.status == 'pending_review' %}
+                                                    <span class="badge bg-warning">Pending Review</span>
+                                                {% elif post.status == 'rejected' %}
+                                                    <span class="badge bg-danger">Rejected</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ post.get_status_display }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <small>{{ post.created_at|date:"M d, Y" }}</small>
+                                            </td>
+                                            <td>
+                                                <a href="{% url 'admin_post_detail' post.pk %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">No posts found.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- User Reports -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-flag"></i> Recent Reports ({{ user_reports.count }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if user_reports %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Reported Content</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for report in user_reports %}
+                                        <tr>
+                                            <td>
+                                                {% if report.post %}
+                                                    <div class="fw-bold">Post: {{ report.post.title|truncatechars:30 }}</div>
+                                                {% elif report.comment %}
+                                                    <div class="fw-bold">Comment: {{ report.comment.content|truncatechars:30 }}</div>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ report.get_report_type_display }}</span>
+                                            </td>
+                                            <td>
+                                                {% if report.status == 'pending' %}
+                                                    <span class="badge bg-warning">Pending</span>
+                                                {% elif report.status == 'reviewed' %}
+                                                    <span class="badge bg-info">Reviewed</span>
+                                                {% elif report.status == 'resolved' %}
+                                                    <span class="badge bg-success">Resolved</span>
+                                                {% elif report.status == 'dismissed' %}
+                                                    <span class="badge bg-secondary">Dismissed</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <small>{{ report.created_at|date:"M d, Y" }}</small>
+                                            </td>
+                                            <td>
+                                                <a href="{% url 'admin_report_detail' report.pk %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">No reports found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Actions Sidebar -->
+        <div class="col-lg-4">
+            <!-- Role Management -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-shield-check"></i> Role Management
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="change_role">
+                        <div class="mb-3">
+                            <label for="role" class="form-label">User Role</label>
+                            <select name="role" id="role" class="form-select">
+                                {% for value, label in user_roles %}
+                                    <option value="{{ value }}" {% if user_obj.role == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="bi bi-arrow-repeat"></i> Update Role
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Account Actions -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear"></i> Account Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if not user_obj.identity_confirmed %}
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="confirm_identity">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-check-circle"></i> Confirm Identity
+                                </button>
+                            </form>
+                        {% endif %}
+                        
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="toggle_active">
+                            {% if user_obj.is_active %}
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="bi bi-x-circle"></i> Deactivate Account
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-check-circle"></i> Activate Account
+                                </button>
+                            {% endif %}
+                        </form>
+                        
+                        <!-- Ban/Unban Actions -->
+                        {% if not user_obj.is_banned %}
+                            <button type="button" class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#banUserModal">
+                                <i class="bi bi-ban"></i> Ban User
+                            </button>
+                        {% else %}
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="unban_user">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-check-circle"></i> Unban User
+                                </button>
+                            </form>
+                        {% endif %}
+                        
+                        <!-- Delete User Action -->
+                        {% if user_obj.role != 'admin' %}
+                            <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteUserModal">
+                                <i class="bi bi-trash"></i> Delete User
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistics -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart"></i> User Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h4 class="text-primary mb-0">{{ user_obj.posts.count }}</h4>
+                                <small class="text-muted">Posts</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-warning mb-0">{{ user_reports.count }}</h4>
+                            <small class="text-muted">Reports</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ban User Modal -->
+<div class="modal fade" id="banUserModal" tabindex="-1" aria-labelledby="banUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="banUserModalLabel">
+                    <i class="bi bi-ban text-warning"></i> Ban User: {{ user_obj.username }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="ban_user">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Warning:</strong> This action will ban the user and deactivate their account.
+                    </div>
+                    <div class="mb-3">
+                        <label for="ban_reason" class="form-label">Ban Reason <span class="text-danger">*</span></label>
+                        <textarea name="ban_reason" id="ban_reason" class="form-control" rows="3" 
+                                  placeholder="Please provide a reason for banning this user..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-ban"></i> Ban User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete User Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteUserModalLabel">
+                    <i class="bi bi-trash text-danger"></i> Delete User: {{ user_obj.username }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_user">
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Danger:</strong> This action cannot be undone. All user data, posts, and comments will be permanently deleted.
+                    </div>
+                    <p>Are you sure you want to delete the user <strong>{{ user_obj.username }}</strong>?</p>
+                    <ul class="text-muted">
+                        <li>{{ user_obj.posts.count }} posts will be deleted</li>
+                        <li>All user comments will be deleted</li>
+                        <li>User profile and data will be permanently removed</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

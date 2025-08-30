@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Verification Detail - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="text-primary mb-1">
+                        <i class="bi bi-patch-check"></i> Verification Request Detail
+                    </h2>
+                    <p class="text-muted mb-0">Review and manage this verification request</p>
+                </div>
+                <div>
+                    <a href="{% url 'admin_verifications' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Verifications
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Verification Information -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Verification Request Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Requested Role</h6>
+                            {% if verification.requested_role == 'journalist' %}
+                                <span class="badge bg-info mb-3">Journalist</span>
+                            {% elif verification.requested_role == 'politician' %}
+                                <span class="badge bg-success mb-3">Politician</span>
+                            {% elif verification.requested_role == 'witness' %}
+                                <span class="badge bg-warning mb-3">Witness</span>
+                            {% elif verification.requested_role == 'expert' %}
+                                <span class="badge bg-primary mb-3">Expert</span>
+                            {% else %}
+                                <span class="badge bg-secondary mb-3">{{ verification.requested_role|title }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Status</h6>
+                            {% if verification.status == 'pending' %}
+                                <span class="badge bg-warning mb-3">Pending</span>
+                            {% elif verification.status == 'approved' %}
+                                <span class="badge bg-success mb-3">Approved</span>
+                            {% elif verification.status == 'rejected' %}
+                                <span class="badge bg-danger mb-3">Rejected</span>
+                            {% elif verification.status == 'under_review' %}
+                                <span class="badge bg-info mb-3">Under Review</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if verification.organization %}
+                        <h6 class="text-muted">Organization</h6>
+                        <p class="mb-3">{{ verification.organization }}</p>
+                    {% endif %}
+                    
+                    {% if verification.position %}
+                        <h6 class="text-muted">Position</h6>
+                        <p class="mb-3">{{ verification.position }}</p>
+                    {% endif %}
+                    
+                    {% if verification.bio %}
+                        <h6 class="text-muted">Bio/Description</h6>
+                        <p class="mb-3">{{ verification.bio }}</p>
+                    {% endif %}
+                    
+                    {% if verification.website %}
+                        <h6 class="text-muted">Website</h6>
+                        <p class="mb-3">
+                            <a href="{{ verification.website }}" target="_blank" class="text-decoration-none">
+                                {{ verification.website }} <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        </p>
+                    {% endif %}
+                    
+                    {% if verification.social_media %}
+                        <h6 class="text-muted">Social Media</h6>
+                        <p class="mb-3">{{ verification.social_media }}</p>
+                    {% endif %}
+                    
+                    {% if verification.additional_info %}
+                        <h6 class="text-muted">Additional Information</h6>
+                        <p class="mb-3">{{ verification.additional_info }}</p>
+                    {% endif %}
+                    
+                    {% if verification.document %}
+                        <h6 class="text-muted">Supporting Document</h6>
+                        <div class="border rounded p-3 mb-3">
+                            <i class="bi bi-file-earmark-text text-primary me-2"></i>
+                            <a href="{{ verification.document.url }}" target="_blank" class="text-decoration-none">
+                                View Document <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Submitted</h6>
+                            <p class="mb-0">{{ verification.created_at|date:"F d, Y \a\t H:i" }}</p>
+                        </div>
+                        {% if verification.handled_by_admin %}
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Handled By</h6>
+                                <p class="mb-0">{{ verification.handled_by_admin.get_full_name|default:verification.handled_by_admin.username }}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions Panel -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear"></i> Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if verification.status == 'pending' or verification.status == 'under_review' %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="handle_verification">
+                            <div class="mb-3">
+                                <label class="form-label">Decision</label>
+                                <select name="status" class="form-select" required>
+                                    <option value="">Select decision...</option>
+                                    <option value="approved">Approve Request</option>
+                                    <option value="rejected">Reject Request</option>
+                                    <option value="under_review">Mark Under Review</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Admin Notes (Optional)</label>
+                                <textarea name="admin_notes" class="form-control" rows="3" placeholder="Add any notes about this decision..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-check"></i> Process Request
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> This verification request has already been processed.
+                        </div>
+                        {% if verification.status == 'approved' %}
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle"></i> User role has been updated to {{ verification.requested_role }}.
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- User Information -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person"></i> User Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <span class="text-white fw-bold">{{ verification.user.username|first|upper }}</span>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">{{ verification.user.get_full_name|default:verification.user.username }}</h6>
+                            <small class="text-muted">@{{ verification.user.username }}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">Current Role</h6>
+                        <span class="badge bg-secondary">{{ verification.user.role|default:"normal"|title }}</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">Email</h6>
+                        <p class="mb-0">{{ verification.user.email|default:"Not provided" }}</p>
+                    </div>
+                    
+                    {% if verification.user.uid_document %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">User ID Document</h6>
+                        <div class="border rounded p-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <i class="bi bi-file-earmark-image text-primary me-2"></i>
+                                    <span>ID Document</span>
+                                </div>
+                                <div>
+                                    <a href="{{ verification.user.uid_document.url }}" target="_blank" class="btn btn-sm btn-outline-primary me-2">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                    <a href="{{ verification.user.uid_document.url }}" download class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-download"></i> Download
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <img src="{{ verification.user.uid_document.url }}" alt="User ID Document" 
+                                     class="img-fluid rounded" style="max-height: 200px; max-width: 100%; object-fit: contain;">
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">User ID Document</h6>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> No ID document uploaded
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <div class="fw-bold text-primary">{{ verification.user.post_set.count }}</div>
+                                <small class="text-muted">Posts</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="fw-bold text-primary">{{ verification.user.verificationrequest_set.count }}</div>
+                            <small class="text-muted">Requests</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">Member since {{ verification.user.date_joined|date:"M Y" }}</small>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'admin_user_detail' verification.user.pk %}" class="btn btn-outline-primary btn-sm w-100">
+                            <i class="bi bi-person-gear"></i> View User Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.5em 0.75em;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+</style>
+{% endblock %}

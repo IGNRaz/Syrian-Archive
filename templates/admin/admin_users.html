@@ -1,0 +1,535 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage Users - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="text-primary mb-1">
+                        <i class="bi bi-people"></i> User Management
+                    </h2>
+                    <p class="text-muted mb-0">Manage user accounts, roles, and permissions</p>
+                </div>
+                <div>
+                    <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-people display-6 mb-2"></i>
+                    <h4 class="mb-1">{{ total_users }}</h4>
+                    <p class="mb-0">Total Users</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-camera display-6 mb-2"></i>
+                    <h4 class="mb-1">{{ journalists_count }}</h4>
+                    <p class="mb-0">Journalists</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-briefcase display-6 mb-2"></i>
+                    <h4 class="mb-1">{{ politicians_count }}</h4>
+                    <p class="mb-0">Politicians</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-patch-check display-6 mb-2"></i>
+                    <h4 class="mb-1">{{ verified_users }}</h4>
+                    <p class="mb-0">Verified Users</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters and Search -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-funnel"></i> Filters & Search
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="role" class="form-label">Role</label>
+                            <select name="role" id="role" class="form-select">
+                                <option value="">All Roles</option>
+                                <option value="user" {% if request.GET.role == 'user' %}selected{% endif %}>User</option>
+                                <option value="journalist" {% if request.GET.role == 'journalist' %}selected{% endif %}>Journalist</option>
+                                <option value="politician" {% if request.GET.role == 'politician' %}selected{% endif %}>Politician</option>
+                                <option value="admin" {% if request.GET.role == 'admin' %}selected{% endif %}>Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="verified" class="form-label">Verification Status</label>
+                            <select name="verified" id="verified" class="form-select">
+                                <option value="">All Users</option>
+                                <option value="true" {% if request.GET.verified == 'true' %}selected{% endif %}>Verified</option>
+                                <option value="false" {% if request.GET.verified == 'false' %}selected{% endif %}>Unverified</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="active" class="form-label">Account Status</label>
+                            <select name="active" id="active" class="form-select">
+                                <option value="">All Accounts</option>
+                                <option value="true" {% if request.GET.active == 'true' %}selected{% endif %}>Active</option>
+                                <option value="false" {% if request.GET.active == 'false' %}selected{% endif %}>Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="has_uid" class="form-label">UID Document</label>
+                            <select name="has_uid" id="has_uid" class="form-select">
+                                <option value="">All Users</option>
+                                <option value="true" {% if request.GET.has_uid == 'true' %}selected{% endif %}>With UID Document</option>
+                                <option value="false" {% if request.GET.has_uid == 'false' %}selected{% endif %}>Without UID Document</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="search" class="form-label">Search</label>
+                            <div class="input-group">
+                                <input type="text" name="search" id="search" class="form-control" 
+                                       placeholder="Username, email, name..." value="{{ request.GET.search }}">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Users Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="bi bi-table"></i> Users List
+                    </h6>
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted me-3">{{ users|length }} of {{ total_users }} users</span>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-sm btn-outline-secondary active" data-view="table">
+                                <i class="bi bi-table"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-view="grid">
+                                <i class="bi bi-grid"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if users %}
+                        <!-- Table View -->
+                        <div id="table-view" class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                        <th>ID Document</th>
+                                        <th>Joined</th>
+                                        <th>Last Active</th>
+                                        <th>Posts</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in users %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if user.profile.profile_picture %}
+                                                        <img src="{{ user.profile.profile_picture.url }}" 
+                                                             alt="{{ user.get_full_name }}" 
+                                                             class="rounded-circle me-3" 
+                                                             width="40" height="40" 
+                                                             style="object-fit: cover;">
+                                                    {% else %}
+                                                        <div class="bg-secondary rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                                                             style="width: 40px; height: 40px;">
+                                                            <i class="bi bi-person text-white"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                    <div>
+                                                        <div class="fw-bold">{{ user.get_full_name|default:user.username }}</div>
+                                                        <small class="text-muted">@{{ user.username }}</small><br>
+                                                        <small class="text-muted">{{ user.email }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if user.role == 'admin' %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="bi bi-shield-check"></i> Admin
+                                                    </span>
+                                                {% elif user.role == 'journalist' %}
+                                                    <span class="badge bg-info">
+                                                        <i class="bi bi-camera"></i> Journalist
+                                                    </span>
+                                                {% elif user.role == 'politician' %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="bi bi-briefcase"></i> Politician
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">
+                                                        <i class="bi bi-person"></i> User
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    {% if user.is_active %}
+                                                        <span class="badge bg-success mb-1">
+                                                            <i class="bi bi-check-circle"></i> Active
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger mb-1">
+                                                            <i class="bi bi-x-circle"></i> Inactive
+                                                        </span>
+                                                    {% endif %}
+                                                    {% if user.profile.identity_confirmed %}
+                                                        <span class="badge bg-success">
+                                                            <i class="bi bi-patch-check"></i> Verified
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-warning">
+                                                            <i class="bi bi-clock"></i> Unverified
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if user.uid_document %}
+                                                    <a href="{{ user.uid_document.url }}" target="_blank" 
+                                                       class="btn btn-sm btn-outline-success" title="View ID Document">
+                                                        <i class="bi bi-file-earmark-image"></i>
+                                                    </a>
+                                                {% else %}
+                                                    <span class="text-muted">
+                                                        <i class="bi bi-x-circle"></i> No ID
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {{ user.date_joined|date:"M d, Y" }}<br>
+                                                    {{ user.date_joined|timesince }} ago
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {% if user.last_login %}
+                                                        {{ user.last_login|date:"M d, Y" }}<br>
+                                                        {{ user.last_login|timesince }} ago
+                                                    {% else %}
+                                                        Never logged in
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ user.posts.count }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a href="{% url 'admin_user_detail' user.id %}" 
+                                                       class="btn btn-sm btn-outline-primary" 
+                                                       title="View Details">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                    <a href="{% url 'profile_view_user' user.username %}" 
+                                                       class="btn btn-sm btn-outline-info" 
+                                                       title="View Profile" 
+                                                       target="_blank">
+                                                        <i class="bi bi-person"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Grid View (Hidden by default) -->
+                        <div id="grid-view" class="d-none p-3">
+                            <div class="row">
+                                {% for user in users %}
+                                    <div class="col-lg-4 col-md-6 mb-4">
+                                        <div class="card h-100 shadow-sm">
+                                            <div class="card-body text-center">
+                                                {% if user.profile.profile_picture %}
+                                                    <img src="{{ user.profile.profile_picture.url }}" 
+                                                         alt="{{ user.get_full_name }}" 
+                                                         class="rounded-circle mb-3" 
+                                                         width="80" height="80" 
+                                                         style="object-fit: cover;">
+                                                {% else %}
+                                                    <div class="bg-secondary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" 
+                                                         style="width: 80px; height: 80px;">
+                                                        <i class="bi bi-person text-white fs-2"></i>
+                                                    </div>
+                                                {% endif %}
+                                                
+                                                <h6 class="card-title">{{ user.get_full_name|default:user.username }}</h6>
+                                                <p class="text-muted small mb-2">@{{ user.username }}</p>
+                                                
+                                                <div class="mb-3">
+                                                    {% if user.role == 'admin' %}
+                                                        <span class="badge bg-danger">
+                                                            <i class="bi bi-shield-check"></i> Admin
+                                                        </span>
+                                                    {% elif user.role == 'journalist' %}
+                                                        <span class="badge bg-info">
+                                                            <i class="bi bi-camera"></i> Journalist
+                                                        </span>
+                                                    {% elif user.role == 'politician' %}
+                                                        <span class="badge bg-warning">
+                                                            <i class="bi bi-briefcase"></i> Politician
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">
+                                                            <i class="bi bi-person"></i> User
+                                                        </span>
+                                                    {% endif %}
+                                                    
+                                                    {% if user.profile.identity_confirmed %}
+                                                        <span class="badge bg-success">
+                                                            <i class="bi bi-patch-check"></i> Verified
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <div class="row text-center mb-3">
+                                                    <div class="col-4">
+                                                        <small class="text-muted">Posts</small><br>
+                                                        <strong>{{ user.posts.count }}</strong>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <small class="text-muted">Joined</small><br>
+                                                        <strong>{{ user.date_joined|date:"M Y" }}</strong>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <small class="text-muted">Status</small><br>
+                                                        {% if user.is_active %}
+                                                            <i class="bi bi-check-circle text-success"></i>
+                                                        {% else %}
+                                                            <i class="bi bi-x-circle text-danger"></i>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="btn-group w-100" role="group">
+                                                    <a href="{% url 'admin_user_detail' user.id %}" 
+                                                       class="btn btn-outline-primary btn-sm">
+                                                        <i class="bi bi-eye"></i> Details
+                                                    </a>
+                                                    <a href="{% url 'profile_view_user' user.username %}" 
+                                                       class="btn btn-outline-info btn-sm" 
+                                                       target="_blank">
+                                                        <i class="bi bi-person"></i> Profile
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-people display-4 text-muted"></i>
+                            <h5 class="text-muted mt-3">No users found</h5>
+                            <p class="text-muted">Try adjusting your search criteria or filters.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    {% if is_paginated %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <nav aria-label="Users pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.verified %}&verified={{ request.GET.verified }}{% endif %}{% if request.GET.active %}&active={{ request.GET.active }}{% endif %}">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.verified %}&verified={{ request.GET.verified }}{% endif %}{% if request.GET.active %}&active={{ request.GET.active }}{% endif %}">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.verified %}&verified={{ request.GET.verified }}{% endif %}{% if request.GET.active %}&active={{ request.GET.active }}{% endif %}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.verified %}&verified={{ request.GET.verified }}{% endif %}{% if request.GET.active %}&active={{ request.GET.active }}{% endif %}">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.verified %}&verified={{ request.GET.verified }}{% endif %}{% if request.GET.active %}&active={{ request.GET.active }}{% endif %}">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// View toggle functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const tableViewBtn = document.querySelector('[data-view="table"]');
+    const gridViewBtn = document.querySelector('[data-view="grid"]');
+    const tableView = document.getElementById('table-view');
+    const gridView = document.getElementById('grid-view');
+    
+    tableViewBtn.addEventListener('click', function() {
+        tableView.classList.remove('d-none');
+        gridView.classList.add('d-none');
+        tableViewBtn.classList.add('active');
+        gridViewBtn.classList.remove('active');
+    });
+    
+    gridViewBtn.addEventListener('click', function() {
+        gridView.classList.remove('d-none');
+        tableView.classList.add('d-none');
+        gridViewBtn.classList.add('active');
+        tableViewBtn.classList.remove('active');
+    });
+});
+</script>
+
+<style>
+.card {
+    border-radius: 12px;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+    padding: 15px;
+}
+
+.table td {
+    padding: 15px;
+    vertical-align: middle;
+}
+
+.btn {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.5em 0.75em;
+    border-radius: 6px;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.pagination .page-link {
+    border-radius: 8px;
+    margin: 0 2px;
+    border: 1px solid #dee2e6;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.display-6 {
+    font-size: 2rem;
+    opacity: 0.8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .display-6 {
+        font-size: 1.5rem;
+    }
+}
+</style>
+{% endblock %}

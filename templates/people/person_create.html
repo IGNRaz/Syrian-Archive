@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add Person - Syrian Archive{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-person-plus"></i> Document a Person
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Name Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">
+                                <i class="bi bi-person"></i> Full Name *
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.name.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Enter the person's full name as accurately as possible.
+                            </div>
+                        </div>
+                        
+                        <!-- Category Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.category.id_for_label }}" class="form-label">
+                                <i class="bi bi-tags"></i> Category *
+                            </label>
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.category.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Select the most appropriate category for this person.
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Age Field -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.age.id_for_label }}" class="form-label">
+                                        <i class="bi bi-calendar"></i> Age (Optional)
+                                    </label>
+                                    {{ form.age }}
+                                    {% if form.age.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.age.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        Age in years at the time of incident.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Date of Incident Field -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.date_of_incident.id_for_label }}" class="form-label">
+                                        <i class="bi bi-calendar-event"></i> Date of Incident (Optional)
+                                    </label>
+                                    {{ form.date_of_incident }}
+                                    {% if form.date_of_incident.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.date_of_incident.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        When did the incident occur?
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Location Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.location.id_for_label }}" class="form-label">
+                                <i class="bi bi-geo-alt"></i> Location (Optional)
+                            </label>
+                            {{ form.location }}
+                            {% if form.location.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.location.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Location where the person was last seen or where the incident occurred.
+                            </div>
+                        </div>
+                        
+                        <!-- Description Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                <i class="bi bi-file-text"></i> Description *
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.description.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Provide detailed information about the person and circumstances. Be respectful and factual.
+                            </div>
+                        </div>
+                        
+                        <!-- Image Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.image.id_for_label }}" class="form-label">
+                                <i class="bi bi-image"></i> Photo (Optional)
+                            </label>
+                            {{ form.image }}
+                            {% if form.image.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.image.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Upload a photo if available. Please ensure you have permission to use the image.
+                            </div>
+                        </div>
+                        
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'people_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Document Person
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Guidelines Card -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Documentation Guidelines
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success">
+                                <i class="bi bi-check-circle"></i> Do:
+                            </h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="bi bi-check text-success"></i> Provide accurate information</li>
+                                <li><i class="bi bi-check text-success"></i> Be respectful and dignified</li>
+                                <li><i class="bi bi-check text-success"></i> Include relevant context</li>
+                                <li><i class="bi bi-check text-success"></i> Verify information when possible</li>
+                                <li><i class="bi bi-check text-success"></i> Respect privacy and consent</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-danger">
+                                <i class="bi bi-x-circle"></i> Don't:
+                            </h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="bi bi-x text-danger"></i> Share unverified information</li>
+                                <li><i class="bi bi-x text-danger"></i> Use inappropriate images</li>
+                                <li><i class="bi bi-x text-danger"></i> Violate privacy rights</li>
+                                <li><i class="bi bi-x text-danger"></i> Include inflammatory content</li>
+                                <li><i class="bi bi-x text-danger"></i> Make false claims</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Category Explanations -->
+                    <div class="mt-4">
+                        <h6 class="mb-3">
+                            <i class="bi bi-tags"></i> Category Definitions:
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <span class="badge bg-dark me-2">Martyr</span>
+                                    <small class="text-muted">Person who lost their life</small>
+                                </div>
+                                <div class="mb-2">
+                                    <span class="badge bg-warning me-2">Injured</span>
+                                    <small class="text-muted">Person who was wounded</small>
+                                </div>
+                                <div class="mb-2">
+                                    <span class="badge bg-secondary me-2">Missing</span>
+                                    <small class="text-muted">Person whose whereabouts are unknown</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <span class="badge bg-danger me-2">Prisoner</span>
+                                    <small class="text-muted">Person who was detained</small>
+                                </div>
+                                <div class="mb-2">
+                                    <span class="badge bg-primary me-2">Fighter</span>
+                                    <small class="text-muted">Person involved in combat</small>
+                                </div>
+                                <div class="mb-2">
+                                    <span class="badge bg-info me-2">Journalist</span>
+                                    <small class="text-muted">Media professional covering events</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Important:</strong> All person documentation is subject to review. Please ensure all information is accurate and respectful.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.form-text {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+}
+
+input[type="number"].form-control {
+    -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="date"].form-control {
+    position: relative;
+}
+
+.btn {
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.card {
+    border-radius: 12px;
+    border: none;
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+    border-bottom: none;
+    padding: 20px;
+}
+
+.card-body {
+    padding: 30px;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.5em 0.75em;
+}
+
+.alert {
+    border-radius: 8px;
+    border: none;
+}
+
+.list-unstyled li {
+    margin-bottom: 0.25rem;
+}
+</style>
+{% endblock %}

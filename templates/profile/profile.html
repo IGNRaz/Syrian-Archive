@@ -1,0 +1,442 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ profile_user.get_full_name|default:profile_user.username }} - Profile{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <!-- Main Profile Content -->
+        <div class="col-lg-8">
+            <!-- Profile Header -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            {% if profile_user.profile.profile_picture %}
+                                <img src="{{ profile_user.profile.profile_picture.url }}" 
+                                     alt="{{ profile_user.get_full_name|default:profile_user.username }}" 
+                                     class="rounded-circle profile-picture" 
+                                     width="120" height="120" style="object-fit: cover;">
+                            {% else %}
+                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center profile-picture" 
+                                     style="width: 120px; height: 120px;">
+                                    <i class="bi bi-person text-white" style="font-size: 3rem;"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h2 class="mb-1">{{ profile_user.get_full_name|default:profile_user.username }}</h2>
+                                    <p class="text-muted mb-2">@{{ profile_user.username }}</p>
+                                    
+                                    <div class="d-flex align-items-center mb-2">
+                                        {% if profile_user.role == 'admin' %}
+                                            <span class="badge bg-danger me-2">
+                                                <i class="bi bi-shield-check"></i> Administrator
+                                            </span>
+                                        {% elif profile_user.role == 'journalist' %}
+                                            <span class="badge bg-info me-2">
+                                                <i class="bi bi-camera"></i> Journalist
+                                            </span>
+                                        {% elif profile_user.role == 'politician' %}
+                                            <span class="badge bg-warning me-2">
+                                                <i class="bi bi-briefcase"></i> Politician
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary me-2">
+                                                <i class="bi bi-person"></i> User
+                                            </span>
+                                        {% endif %}
+                                        
+                                        {% if profile_user.profile.identity_confirmed %}
+                                            <span class="badge bg-success me-2">
+                                                <i class="bi bi-patch-check"></i> Verified
+                                            </span>
+                                        {% endif %}
+                                        
+                                        {% if profile_user.is_active %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> Active
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-pause-circle"></i> Inactive
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if profile_user.profile.bio %}
+                                        <p class="mb-2">{{ profile_user.profile.bio }}</p>
+                                    {% endif %}
+                                    
+                                    <div class="text-muted small">
+                                        <i class="bi bi-calendar"></i> Joined {{ profile_user.date_joined|date:"F Y" }}
+                                        {% if profile_user.last_login %}
+                                            • <i class="bi bi-clock"></i> Last seen {{ profile_user.last_login|timesince }} ago
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                {% if user == profile_user %}
+                                    <div>
+                                        <a href="{% url 'profile_edit' %}" class="btn btn-primary">
+                                            <i class="bi bi-pencil"></i> Edit Profile
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h4 class="mb-1">{{ profile_user.posts.count }}</h4>
+                            <small>Posts</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h4 class="mb-1">{{ profile_user.likes.count }}</h4>
+                            <small>Likes Given</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h4 class="mb-1">{{ profile_user.comments.count }}</h4>
+                            <small>Comments</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h4 class="mb-1">{{ profile_user.verifications.count }}</h4>
+                            <small>Verifications</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Posts -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-file-post text-primary"></i> Recent Posts
+                        </h5>
+                        {% if profile_user.posts.exists %}
+                            <a href="{% url 'post_list' %}?author={{ profile_user.username }}" class="btn btn-outline-primary btn-sm">
+                                View All
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% for post in profile_user.posts.all|slice:":3" %}
+                        <div class="d-flex mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                            {% if post.image %}
+                                <img src="{{ post.image.url }}" alt="{{ post.title }}" 
+                                     class="rounded me-3" width="80" height="80" style="object-fit: cover;">
+                            {% else %}
+                                <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center" 
+                                     style="width: 80px; height: 80px; min-width: 80px;">
+                                    <i class="bi bi-file-post text-muted"></i>
+                                </div>
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    <a href="{% url 'post_detail' post.id %}" class="text-decoration-none">
+                                        {{ post.title }}
+                                    </a>
+                                </h6>
+                                <p class="text-muted small mb-2">{{ post.content|truncatechars:100 }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge bg-light text-dark me-1">
+                                            <i class="bi bi-heart"></i> {{ post.likes.count }}
+                                        </span>
+                                        <span class="badge bg-light text-dark me-1">
+                                            <i class="bi bi-chat"></i> {{ post.comments.count }}
+                                        </span>
+                                        {% if post.status == 'approved' %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% elif post.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif post.status == 'rejected' %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">{{ post.created_at|timesince }} ago</small>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-file-post text-muted" style="font-size: 3rem;"></i>
+                            <h6 class="mt-2 text-muted">No posts yet</h6>
+                            {% if user == profile_user %}
+                                <a href="{% url 'post_create' %}" class="btn btn-primary btn-sm mt-2">
+                                    <i class="bi bi-plus-circle"></i> Create Your First Post
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Recent Comments -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat text-info"></i> Recent Comments
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for comment in profile_user.comments.all|slice:":5" %}
+                        <div class="d-flex mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                            <div class="bg-info rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                                 style="width: 40px; height: 40px; min-width: 40px;">
+                                <i class="bi bi-chat text-white small"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <h6 class="mb-0">
+                                        <a href="{% url 'post_detail' comment.post.id %}" class="text-decoration-none">
+                                            {{ comment.post.title|truncatechars:50 }}
+                                        </a>
+                                    </h6>
+                                    <small class="text-muted">{{ comment.created_at|timesince }} ago</small>
+                                </div>
+                                <p class="text-muted small mb-0">{{ comment.content|truncatechars:120 }}</p>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-chat text-muted" style="font-size: 3rem;"></i>
+                            <h6 class="mt-2 text-muted">No comments yet</h6>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Contact Information -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-person-lines-fill text-primary"></i> Contact Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong class="text-muted">Email:</strong><br>
+                        <span class="text-dark">{{ profile_user.email|default:"Not provided" }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong class="text-muted">Full Name:</strong><br>
+                        <span class="text-dark">{{ profile_user.get_full_name|default:"Not provided" }}</span>
+                    </div>
+                    <div class="mb-0">
+                        <strong class="text-muted">Role:</strong><br>
+                        <span class="text-dark">{{ profile_user.get_role_display }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Account Status -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-shield-check text-success"></i> Account Status
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Identity Verified:</span>
+                            {% if profile_user.profile.identity_confirmed %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Yes
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning">
+                                    <i class="bi bi-clock"></i> Pending
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Account Active:</span>
+                            {% if profile_user.is_active %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Active
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle"></i> Inactive
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Member Since:</span>
+                            <span class="text-dark">{{ profile_user.date_joined|date:"M Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Activity Summary -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-activity text-warning"></i> Activity Summary
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small">Posts Created</span>
+                            <span class="text-dark">{{ profile_user.posts.count }}</span>
+                        </div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-primary" style="width: {{ profile_user.posts.count|floatformat:0 }}%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small">Comments Made</span>
+                            <span class="text-dark">{{ profile_user.comments.count }}</span>
+                        </div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-info" style="width: {{ profile_user.comments.count|floatformat:0 }}%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small">Likes Given</span>
+                            <span class="text-dark">{{ profile_user.likes.count }}</span>
+                        </div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-success" style="width: {{ profile_user.likes.count|floatformat:0 }}%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small">Verifications</span>
+                            <span class="text-dark">{{ profile_user.verifications.count }}</span>
+                        </div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-warning" style="width: {{ profile_user.verifications.count|floatformat:0 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            {% if user.is_authenticated and user != profile_user %}
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-lightning text-warning"></i> Quick Actions
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'post_list' %}?author={{ profile_user.username }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-file-post"></i> View All Posts
+                            </a>
+                            {% if user.is_staff %}
+                                <a href="{% url 'admin_user_detail' profile_user.id %}" class="btn btn-outline-warning btn-sm">
+                                    <i class="bi bi-gear"></i> Admin Actions
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-picture {
+    border: 4px solid #fff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.card {
+    border-radius: 12px;
+    border: none;
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+    border-bottom: 1px solid #dee2e6;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.5em 0.75em;
+    border-radius: 6px;
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.progress {
+    border-radius: 4px;
+}
+
+.progress-bar {
+    border-radius: 4px;
+}
+
+.text-decoration-none:hover {
+    text-decoration: underline !important;
+}
+
+.border-bottom {
+    border-bottom: 1px solid #dee2e6 !important;
+}
+
+@media (max-width: 768px) {
+    .col-md-3 {
+        margin-bottom: 1rem;
+    }
+    
+    .profile-picture {
+        width: 80px !important;
+        height: 80px !important;
+    }
+    
+    .profile-picture i {
+        font-size: 2rem !important;
+    }
+}
+</style>
+{% endblock %}

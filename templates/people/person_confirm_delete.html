@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delete Person - Syrian Archive{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> Confirm Deletion
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Warning:</strong> This action cannot be undone.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            {% if person.image %}
+                                <img src="{{ person.image.url }}" class="img-fluid rounded" alt="{{ person.name }}">
+                            {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 200px;">
+                                    <i class="bi bi-person-circle text-muted" style="font-size: 4rem;"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <h5>{{ person.name }}</h5>
+                            <p class="text-muted mb-2">
+                                <i class="bi bi-geo-alt"></i> {{ person.location }}
+                            </p>
+                            <p class="text-muted mb-2">
+                                <i class="bi bi-calendar"></i> Age: {{ person.age }}
+                            </p>
+                            <p class="text-muted mb-2">
+                                <i class="bi bi-person-badge"></i> Role: 
+                                <span class="badge bg-secondary">{{ person.get_role_display }}</span>
+                            </p>
+                            {% if person.description %}
+                                <p class="text-muted">{{ person.description|truncatewords:20 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <p class="mb-4">
+                        Are you sure you want to delete <strong>{{ person.name }}</strong>? 
+                        This will permanently remove this person entry and all associated data.
+                    </p>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'person_detail' person.pk %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash"></i> Delete Person
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

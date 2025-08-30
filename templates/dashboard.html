@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Syrian Archive{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-1">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </h1>
+                    <p class="text-muted mb-0">
+                        Welcome back, {{ user.get_full_name|default:user.username }}!
+                        {% if user.profile.role != 'normal' %}
+                            <span class="badge bg-primary ms-2">{{ user.profile.get_role_display }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'post_create' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Create Post
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="row mb-5">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ user_stats.posts_count }}</h4>
+                            <p class="mb-0">My Posts</p>
+                        </div>
+                        <i class="bi bi-file-text" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ user_stats.likes_received }}</h4>
+                            <p class="mb-0">Likes Received</p>
+                        </div>
+                        <i class="bi bi-heart-fill" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ user_stats.comments_count }}</h4>
+                            <p class="mb-0">Comments Made</p>
+                        </div>
+                        <i class="bi bi-chat-fill" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ user_stats.verifications_given }}</h4>
+                            <p class="mb-0">Verifications</p>
+                        </div>
+                        <i class="bi bi-patch-check-fill" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h3 class="mb-3">
+                <i class="bi bi-lightning"></i> Quick Actions
+            </h3>
+            <div class="row">
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <a href="{% url 'post_create' %}" class="card text-decoration-none h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-plus-circle text-primary" style="font-size: 3rem;"></i>
+                            <h5 class="card-title mt-2">Create Post</h5>
+                            <p class="card-text text-muted">Share a new story or update</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <a href="{% url 'person_create' %}" class="card text-decoration-none h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-person-plus text-success" style="font-size: 3rem;"></i>
+                            <h5 class="card-title mt-2">Add Person</h5>
+                            <p class="card-text text-muted">Document a new person</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <a href="{% url 'event_create' %}" class="card text-decoration-none h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-calendar-plus text-warning" style="font-size: 3rem;"></i>
+                            <h5 class="card-title mt-2">Create Event</h5>
+                            <p class="card-text text-muted">Document a new event</p>
+                        </div>
+                    </a>
+                </div>
+                {% if user.profile.role == 'normal' %}
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <a href="{% url 'request_verification' %}" class="card text-decoration-none h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-patch-check text-info" style="font-size: 3rem;"></i>
+                            <h5 class="card-title mt-2">Get Verified</h5>
+                            <p class="card-text text-muted">Request verification status</p>
+                        </div>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history"></i> My Recent Posts
+                    </h5>
+                    <a href="{% url 'post_list' %}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_posts %}
+                        {% for post in recent_posts %}
+                        <div class="d-flex mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                            {% if post.image %}
+                                <img src="{{ post.image.url }}" class="rounded me-3" style="width: 60px; height: 60px; object-fit: cover;" alt="Post image">
+                            {% else %}
+                                <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                    <i class="bi bi-file-text text-muted"></i>
+                                </div>
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">{{ post.title|truncatechars:50 }}</h6>
+                                <p class="mb-1 text-muted small">{{ post.content|truncatechars:80 }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar"></i> {{ post.created_at|timesince }} ago
+                                    </small>
+                                    <div>
+                                        {% if post.status == 'approved' %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% elif post.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif post.status == 'rejected' %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                        <span class="badge bg-light text-dark">
+                                            <i class="bi bi-heart"></i> {{ post.like_set.count }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-file-text text-muted" style="font-size: 3rem;"></i>
+                            <p class="text-muted mt-2">You haven't created any posts yet.</p>
+                            <a href="{% url 'post_create' %}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Create Your First Post
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Profile Summary -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person"></i> Profile Summary
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if user.profile.profile_picture %}
+                        <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle mb-3" style="width: 80px; height: 80px; object-fit: cover;" alt="Profile picture">
+                    {% else %}
+                        <div class="bg-light rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                            <i class="bi bi-person text-muted" style="font-size: 2rem;"></i>
+                        </div>
+                    {% endif %}
+                    <h6>{{ user.get_full_name|default:user.username }}</h6>
+                    <p class="text-muted mb-2">{{ user.email }}</p>
+                    {% if user.profile.role != 'normal' %}
+                        <span class="badge bg-primary mb-2">{{ user.profile.get_role_display }}</span>
+                    {% endif %}
+                    {% if user.profile.identity_confirmed %}
+                        <div class="mb-2">
+                            <span class="badge bg-success">
+                                <i class="bi bi-patch-check"></i> Identity Confirmed
+                            </span>
+                        </div>
+                    {% endif %}
+                    <div class="d-grid">
+                        <a href="{% url 'profile_edit' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-gear"></i> Edit Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notifications -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bell"></i> Notifications
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if pending_verification_request %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-clock"></i> Your verification request is pending review.
+                        </div>
+                    {% endif %}
+                    
+                    {% if user.profile.role == 'normal' and not pending_verification_request %}
+                        <div class="alert alert-light">
+                            <i class="bi bi-info-circle"></i> Want to become a verified journalist or politician? 
+                            <a href="{% url 'request_verification' %}" class="alert-link">Request verification</a>.
+                        </div>
+                    {% endif %}
+                    
+                    <div class="text-center text-muted">
+                        <i class="bi bi-check-circle"></i>
+                        <p class="mb-0 small">You're all caught up!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
