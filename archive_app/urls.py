@@ -13,18 +13,11 @@ urlpatterns = [
     path('logout/', views.CustomLogoutView.as_view(), name='logout'),
     path('upload-uid/', views.upload_uid_document, name='upload_uid_document'),
     path('change-password/', views.change_password, name='change_password'),
-    path('password_reset/', auth_views.PasswordResetView.as_view(
-        template_name='registration/password_reset.html',
-        email_template_name='registration/password_reset_email.html',
-        success_url='/password_reset/done/'
-    ), name='password_reset'),
+    path('password_reset/', views.CustomPasswordResetView.as_view(), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(
         template_name='registration/password_reset_done.html'
     ), name='password_reset_done'),
-    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(
-        template_name='registration/password_reset_confirm.html',
-        success_url='/reset/done/'
-    ), name='password_reset_confirm'),
+    path('reset/<uidb64>/<token>/', views.CustomPasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(
         template_name='registration/password_reset_complete.html'
     ), name='password_reset_complete'),
@@ -101,5 +94,9 @@ urlpatterns = [
     # Admin IP Bans
     path('admin-panel/ip-bans/', views.admin_ip_bans, name='admin_ip_bans'),
     path('admin-panel/ip-bans/<int:pk>/', views.admin_ip_ban_detail, name='admin_ip_ban_detail'),
+    
+    # ==================== LOGS ====================
+    path('admin-panel/logs/', views.admin_logs, name='admin_logs'),
+    path('admin-panel/logs/download/', views.admin_logs_download, name='admin_logs_download'),
 ]
 

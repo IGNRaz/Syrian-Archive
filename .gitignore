@@ -158,40 +158,52 @@ cython_debug/
 #  project, it is recommended to ignore the entire .idea directory.
 .idea/
 
-# VS Code
-.vscode/
-
 # Django specific
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
 media/
-static/admin/
-static/rest_framework/
-staticcollected/
+staticfiles/
+static/
 
-# Local settings and secrets
-secret_key.txt
+# Django migrations (optional - uncomment if you want to ignore migrations)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Environment variables
+.env
 .env.local
-.env.production
-.env.development
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Database
-*.sqlite3
 *.db
+*.sqlite
+*.sqlite3
 
-# Test files and scripts
-test_*.py
-check_*.py
-approve_*.py
-create_*.py
-*_test.py
-*test*.py
-tests/
-test/
+# Secret keys and sensitive configuration
+secret_key.txt
+secrets.json
+config.json
+
+# User uploaded files
+media/
+uploads/
+uid_docs/
+profile_pics/
+posts/
+people/
+
+# Logs
+logs/
+*.log
+*.log.*
 
 # Temporary files
 *.tmp
 *.temp
-*.swp
-*.swo
 *~
 
 # OS generated files
@@ -203,72 +215,91 @@ test/
 ehthumbs.db
 Thumbs.db
 
-# Node.js (if using frontend tools)
+# IDE files
+.vscode/
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# Cache directories
+.cache/
+.pytest_cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Node modules (if using any frontend tools)
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Logs
-logs/
-*.log
+# Production settings
+production_settings.py
+staging_settings.py
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.csr
 
-# Coverage directory used by tools like istanbul
-coverage/
+# Deployment files
+docker-compose.override.yml
+.dockerignore
 
-# Dependency directories
-jspm_packages/
+# Local development files
+local_*
+dev_*
+test_*
 
-# Optional npm cache directory
-.npm
+# Email backend files (if using file-based email backend)
+sent_emails/
 
-# Optional eslint cache
-.eslintcache
+# Celery beat schedule file
+celerybeat-schedule.db
 
-# Output of 'npm pack'
-*.tgz
+# Redis dump file
+dump.rdb
 
-# Yarn Integrity file
-.yarn-integrity
+# Elasticsearch data
+elasticsearch/
 
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
+# Webpack bundles
+webpack-stats.json
+bundles/
 
-# next.js build output
-.next
+# Collected static files
+staticfiles/
+static_root/
 
-# nuxt.js build output
-.nuxt
+# Locale files (if not needed in version control)
+# locale/
 
-# vuepress build output
-.vuepress/dist
+# Documentation builds
+docs/_build/
+docs/build/
 
-# Serverless directories
-.serverless
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
 
-# FuseBox cache
-.fusebox/
+# Profiling data
+*.prof
 
-# DynamoDB Local files
-.dynamodb/
+# Memory dumps
+*.hprof
 
-# Webpack
-.webpack/
-
-# Electron
-dist_electron/
-
-# Stores VSCode versions used for testing VSCode extensions
-.vscode-test
-
-# Backup files
-*.bak
-*.backup
-*.orig
+# Application specific
+# Add any application-specific files that should be ignored

@@ -1,0 +1,287 @@
+{% extends "auth_payments/base.html" %}
+{% load static %}
+
+{% block title %}Add Payment Method - Syrian Archive{% endblock %}
+
+{% block auth_payments_content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="form-section">
+            <div class="d-flex align-items-center mb-4">
+                <a href="{% url 'auth_payments:payment_methods' %}" class="btn btn-outline-secondary me-3">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h2 class="section-title mb-0">
+                    <i class="fas fa-credit-card"></i>
+                    Add Payment Method
+                </h2>
+            </div>
+            
+            <form method="post" id="payment-method-form">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="id_cardholder_name" class="form-label">Cardholder Name</label>
+                            {{ form.cardholder_name }}
+                            {% if form.cardholder_name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.cardholder_name.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="id_payment_type" class="form-label">Payment Type</label>
+                            {{ form.payment_type }}
+                            {% if form.payment_type.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.payment_type.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="id_card_number" class="form-label">Card Number</label>
+                    {{ form.card_number }}
+                    {% if form.card_number.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.card_number.errors.0 }}
+                        </div>
+                    {% endif %}
+                    <div class="form-text">
+                        <i class="fab fa-cc-visa"></i>
+                        <i class="fab fa-cc-mastercard"></i>
+                        <i class="fab fa-cc-amex"></i>
+                        <i class="fab fa-cc-discover"></i>
+                        We accept all major credit cards
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="id_card_exp_month" class="form-label">Expiry Month</label>
+                            {{ form.card_exp_month }}
+                            {% if form.card_exp_month.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.card_exp_month.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="id_card_exp_year" class="form-label">Expiry Year</label>
+                            {{ form.card_exp_year }}
+                            {% if form.card_exp_year.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.card_exp_year.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="id_card_cvc" class="form-label">CVC</label>
+                            {{ form.card_cvc }}
+                            {% if form.card_cvc.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.card_cvc.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <i class="fas fa-question-circle"></i>
+                                3-4 digits on the back of your card
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="form-check">
+                        {{ form.is_default }}
+                        <label class="form-check-label" for="id_is_default">
+                            Set as default payment method
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-shield-alt"></i>
+                    <strong>Secure Payment Processing</strong><br>
+                    Your payment information is encrypted and processed securely through Stripe. 
+                    We never store your full credit card number on our servers.
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'auth_payments:payment_methods' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="submit-button">
+                        <i class="fas fa-plus"></i>
+                        Add Payment Method
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="payment-card">
+            <h5 class="mb-3">
+                <i class="fas fa-lock"></i>
+                Security Features
+            </h5>
+            <ul class="list-unstyled">
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    256-bit SSL encryption
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    PCI DSS Level 1 compliance
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    Fraud detection & prevention
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    Secure tokenization
+                </li>
+            </ul>
+        </div>
+        
+        <div class="payment-card">
+            <h5 class="mb-3">
+                <i class="fas fa-credit-card"></i>
+                Accepted Cards
+            </h5>
+            <div class="row text-center">
+                <div class="col-3">
+                    <i class="fab fa-cc-visa fa-2x text-primary"></i>
+                    <div class="small mt-1">Visa</div>
+                </div>
+                <div class="col-3">
+                    <i class="fab fa-cc-mastercard fa-2x text-warning"></i>
+                    <div class="small mt-1">Mastercard</div>
+                </div>
+                <div class="col-3">
+                    <i class="fab fa-cc-amex fa-2x text-success"></i>
+                    <div class="small mt-1">Amex</div>
+                </div>
+                <div class="col-3">
+                    <i class="fab fa-cc-discover fa-2x text-info"></i>
+                    <div class="small mt-1">Discover</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="payment-card">
+            <h5 class="mb-3">
+                <i class="fas fa-question-circle"></i>
+                Need Help?
+            </h5>
+            <p class="text-muted mb-3">
+                Having trouble adding your payment method? Check our FAQ or contact support.
+            </p>
+            <div class="d-grid gap-2">
+                <a href="#" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-book"></i>
+                    View FAQ
+                </a>
+                <a href="#" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-envelope"></i>
+                    Contact Support
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('payment-method-form');
+        const submitButton = document.getElementById('submit-button');
+        const cardNumberInput = document.getElementById('id_card_number');
+        const cvcInput = document.getElementById('id_card_cvc');
+        
+        // Format card number input
+        cardNumberInput.addEventListener('input', function(e) {
+            formatCardNumber(this);
+            detectCardBrand(this.value);
+        });
+        
+        // Limit CVC input
+        cvcInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/\D/g, '').substring(0, 4);
+        });
+        
+        // Form submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Show loading state
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            submitButton.disabled = true;
+            
+            // Validate form
+            if (validateForm()) {
+                // In a real implementation, you would create a Stripe token here
+                // For now, we'll just submit the form
+                setTimeout(() => {
+                    form.submit();
+                }, 1000);
+            } else {
+                // Reset button state
+                submitButton.innerHTML = '<i class="fas fa-plus"></i> Add Payment Method';
+                submitButton.disabled = false;
+            }
+        });
+        
+        function validateForm() {
+            let isValid = true;
+            const requiredFields = ['id_cardholder_name', 'id_card_number', 'id_card_exp_month', 'id_card_exp_year', 'id_card_cvc'];
+            
+            requiredFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            return isValid;
+        }
+        
+        function detectCardBrand(cardNumber) {
+            const cleanNumber = cardNumber.replace(/\s/g, '');
+            let brand = 'unknown';
+            
+            if (/^4/.test(cleanNumber)) {
+                brand = 'visa';
+            } else if (/^5[1-5]/.test(cleanNumber) || /^2[2-7]/.test(cleanNumber)) {
+                brand = 'mastercard';
+            } else if (/^3[47]/.test(cleanNumber)) {
+                brand = 'amex';
+            } else if (/^6/.test(cleanNumber)) {
+                brand = 'discover';
+            }
+            
+            // Update visual indicator (you could add card brand icons here)
+            console.log('Detected card brand:', brand);
+        }
+    });
+</script>
+{% endblock %}

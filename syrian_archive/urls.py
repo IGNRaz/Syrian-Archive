@@ -25,11 +25,13 @@ from rest_framework_simplejwt.views import (
 from archive_app import views
 
 urlpatterns = [
-  
+    path('admin/', admin.site.urls),
     path('', include('archive_app.urls')),
-    
-    
-    
+    path('auth/', include('auth_payments.urls')),
+    path('accounts/', include('allauth.urls')),  # Default allauth URLs
+    path('api/', include('api.urls')),  # API endpoints
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
 
 if settings.DEBUG:

@@ -79,13 +79,13 @@
 
                         <!-- Image Field -->
                         <div class="mb-3">
-                            <label for="{{ form.image.id_for_label }}" class="form-label">
-                                <i class="bi bi-image"></i> Image
+                            <label for="{{ form.attachment.id_for_label }}" class="form-label">
+                                <i class="bi bi-paperclip"></i> Attachment (Optional)
                             </label>
-                            {{ form.image }}
-                            {% if form.image.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.image.errors %}
+                            {{ form.attachment }}
+                            {% if form.attachment.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.attachment.errors %}
                                         {{ error }}
                                     {% endfor %}
                                 </div>
@@ -95,12 +95,12 @@
                             </div>
                         </div>
 
-                        <!-- Current Image Preview (for edit mode) -->
-                        {% if post and post.image %}
+                        <!-- Current Attachment Preview (for edit mode) -->
+                        {% if post and post.attachment %}
                             <div class="mb-3">
-                                <label class="form-label">Current Image:</label>
-                                <div class="current-image-preview">
-                                    <img src="{{ post.image.url }}" alt="Current image" class="img-thumbnail post-image" style="max-width: 300px; max-height: 200px;">
+                                <label class="form-label">Current Attachment:</label>
+                                <div class="current-attachment-preview">
+                                    <img src="{{ post.attachment.url }}" alt="Current attachment" class="img-thumbnail post-attachment" style="max-width: 300px; max-height: 200px;">
                                 </div>
                             </div>
                         {% endif %}

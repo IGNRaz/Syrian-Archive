@@ -79,6 +79,36 @@
                             </p>
                         </div>
                     </form>
+                    
+                    <!-- Social Login Options -->
+                    {% load socialaccount %}
+                    <div class="mt-4">
+                        <div class="text-center mb-3">
+                            <span class="text-muted small">Or sign in with</span>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <!-- Google Login -->
+                            <a href="{% provider_login_url 'google' %}" class="btn btn-outline-danger">
+                                <i class="bi bi-google"></i> Continue with Google
+                            </a>
+                            
+                            <!-- Microsoft Login -->
+                            <a href="{% provider_login_url 'microsoft' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-microsoft"></i> Continue with Microsoft
+                            </a>
+                            
+                            <!-- GitHub Login -->
+                            <a href="{% provider_login_url 'github' %}" class="btn btn-outline-dark">
+                                <i class="bi bi-github"></i> Continue with GitHub
+                            </a>
+                            
+                            <!-- LinkedIn Login -->
+                            <a href="{% provider_login_url 'linkedin_oauth2' %}" class="btn btn-outline-info">
+                                <i class="bi bi-linkedin"></i> Continue with LinkedIn
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

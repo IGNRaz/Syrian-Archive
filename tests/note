@@ -1,0 +1,56 @@
+Here are the links to create OAuth applications for the remaining social login providers:
+
+## Microsoft OAuth Application
+🔗 Microsoft Azure Portal : https://portal.azure.com/
+
+Steps:
+
+1. 1.
+   Go to "Azure Active Directory" > "App registrations"
+2. 2.
+   Click "New registration"
+3. 3.
+   Set redirect URI to: http://127.0.0.1:8000/accounts/microsoft/login/callback/
+4. 4.
+   After creation, go to "Certificates & secrets" to create a client secret
+5. 5.
+   Copy the Application (client) ID and Client secret
+## GitHub OAuth Application
+🔗 GitHub Developer Settings : https://github.com/settings/developers
+
+Steps:
+
+1. 1.
+   Click "OAuth Apps" > "New OAuth App"
+2. 2.
+   Set Authorization callback URL to: http://127.0.0.1:8000/accounts/github/login/callback/
+3. 3.
+   After creation, generate a Client secret
+4. 4.
+   Copy the Client ID and Client secret
+## LinkedIn OAuth Application
+🔗 LinkedIn Developer Portal : https://www.linkedin.com/developers/apps
+
+Steps:
+
+1. 1.
+   Click "Create app"
+2. 2.
+   Fill in app details and verify your LinkedIn page
+3. 3.
+   Go to "Auth" tab
+4. 4.
+   Add redirect URL: http://127.0.0.1:8000/accounts/linkedin_oauth2/login/callback/
+5. 5.
+   Copy the Client ID and Client Secret
+## What You Need to Provide
+For each provider, I'll need:
+
+- Client ID (Application ID)
+- Client Secret
+Once you have these credentials, I can update them in your Django application just like we did with Google!
+
+## Important Notes
+- Make sure to use the exact redirect URIs provided above
+- For production, replace 127.0.0.1:8000 with your actual domain
+- Keep your client secrets secure and never commit them to version control

@@ -1,0 +1,318 @@
+{% extends "auth_payments/base.html" %}
+{% load static %}
+
+{% block title %}Subscriptions - Syrian Archive{% endblock %}
+
+{% block auth_payments_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="section-title mb-0">
+                <i class="fas fa-calendar-alt"></i>
+                My Subscriptions
+            </h2>
+            <a href="{% url 'auth_payments:create_subscription' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                New Subscription
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        {% if subscriptions %}
+            {% for subscription in subscriptions %}
+            <div class="payment-card">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <h5 class="mb-1">{{ subscription.plan|title }} Plan</h5>
+                        <p class="text-muted mb-0">
+                            ${{ subscription.monthly_price }}/month
+                        </p>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="status-badge 
+                            {% if subscription.status == 'active' %}status-active
+                            {% elif subscription.status == 'pending' %}status-pending
+                            {% elif subscription.status == 'cancelled' %}status-failed
+                            {% else %}status-pending{% endif %}">
+                            {{ subscription.status|title }}
+                        </span>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted">
+                            {% if subscription.next_billing_date %}
+                                Next billing: {{ subscription.next_billing_date|date:"M d, Y" }}
+                            {% else %}
+                                Started: {{ subscription.start_date|date:"M d, Y" }}
+                            {% endif %}
+                        </small>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                {% if subscription.status == 'active' %}
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="pauseSubscription({{ subscription.id }})">
+                                        <i class="fas fa-pause"></i> Pause Subscription
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item text-warning" href="#" onclick="cancelSubscription({{ subscription.id }})">
+                                        <i class="fas fa-times"></i> Cancel Subscription
+                                    </a>
+                                </li>
+                                {% elif subscription.status == 'paused' %}
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="resumeSubscription({{ subscription.id }})">
+                                        <i class="fas fa-play"></i> Resume Subscription
+                                    </a>
+                                </li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="viewSubscriptionDetails({{ subscription.id }})">
+                                        <i class="fas fa-eye"></i> View Details
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if subscription.status == 'active' %}
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar" role="progressbar" style="width: 75%"></div>
+                        </div>
+                        <small class="text-muted">75% through current billing cycle</small>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="payment-card text-center">
+                <i class="fas fa-calendar-alt fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No Active Subscriptions</h4>
+                <p class="text-muted mb-4">
+                    You don't have any subscriptions yet. Choose a plan that fits your needs and get started today.
+                </p>
+                <a href="{% url 'auth_payments:create_subscription' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    Browse Subscription Plans
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <div class="payment-card">
+            <h5 class="mb-3">
+                <i class="fas fa-star"></i>
+                Available Plans
+            </h5>
+            {% for plan_key, plan_info in available_plans.items %}
+            <div class="subscription-plan mb-3">
+                <h6 class="mb-1">{{ plan_info.name }}</h6>
+                <div class="plan-price">${{ plan_info.price }}</div>
+                <small class="text-muted">per month</small>
+            </div>
+            {% endfor %}
+            <a href="{% url 'auth_payments:create_subscription' %}" class="btn btn-outline-primary btn-sm w-100">
+                <i class="fas fa-plus"></i>
+                Subscribe Now
+            </a>
+        </div>
+        
+        <div class="payment-card">
+            <h5 class="mb-3">
+                <i class="fas fa-info-circle"></i>
+                Subscription Benefits
+            </h5>
+            <ul class="list-unstyled">
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    Cancel anytime
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    No setup fees
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    Automatic billing
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    24/7 customer support
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    Secure payment processing
+                </li>
+            </ul>
+        </div>
+        
+        <div class="payment-card">
+            <h5 class="mb-3">
+                <i class="fas fa-chart-bar"></i>
+                Usage & Billing
+            </h5>
+            <div class="d-grid gap-2">
+                <a href="{% url 'auth_payments:payment_history' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-history"></i>
+                    Billing History
+                </a>
+                <a href="{% url 'auth_payments:payment_methods' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-credit-card"></i>
+                    Payment Methods
+                </a>
+                <a href="#" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-download"></i>
+                    Download Invoice
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Subscription Details Modal -->
+<div class="modal fade" id="subscriptionDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle"></i>
+                    Subscription Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="subscriptionDetailsContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    function pauseSubscription(subscriptionId) {
+        if (confirm('Are you sure you want to pause this subscription?')) {
+            fetch(`/auth/subscriptions/pause/${subscriptionId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Subscription paused successfully!', 'success');
+                    location.reload();
+                } else {
+                    showAlert('Error pausing subscription.', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('An error occurred. Please try again.', 'danger');
+            });
+        }
+    }
+    
+    function cancelSubscription(subscriptionId) {
+        if (confirm('Are you sure you want to cancel this subscription? This action cannot be undone.')) {
+            fetch(`/auth/subscriptions/cancel/${subscriptionId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Subscription cancelled successfully!', 'success');
+                    location.reload();
+                } else {
+                    showAlert('Error cancelling subscription.', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('An error occurred. Please try again.', 'danger');
+            });
+        }
+    }
+    
+    function resumeSubscription(subscriptionId) {
+        if (confirm('Are you sure you want to resume this subscription?')) {
+            fetch(`/auth/subscriptions/resume/${subscriptionId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Subscription resumed successfully!', 'success');
+                    location.reload();
+                } else {
+                    showAlert('Error resuming subscription.', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('An error occurred. Please try again.', 'danger');
+            });
+        }
+    }
+    
+    function viewSubscriptionDetails(subscriptionId) {
+        fetch(`/auth/api/subscription/${subscriptionId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const content = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Plan Information</h6>
+                                <p><strong>Plan:</strong> ${data.subscription.plan}</p>
+                                <p><strong>Price:</strong> $${data.subscription.monthly_price}/month</p>
+                                <p><strong>Status:</strong> ${data.subscription.status}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Billing Information</h6>
+                                <p><strong>Start Date:</strong> ${data.subscription.start_date}</p>
+                                <p><strong>Next Billing:</strong> ${data.subscription.next_billing_date || 'N/A'}</p>
+                                <p><strong>End Date:</strong> ${data.subscription.end_date || 'N/A'}</p>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('subscriptionDetailsContent').innerHTML = content;
+                    new bootstrap.Modal(document.getElementById('subscriptionDetailsModal')).show();
+                } else {
+                    showAlert('Error loading subscription details.', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('An error occurred. Please try again.', 'danger');
+            });
+    }
+</script>
+{% endblock %}

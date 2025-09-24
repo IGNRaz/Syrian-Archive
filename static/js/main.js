@@ -173,24 +173,55 @@ const SyrianArchive = {
 
     // ===== IMAGE PREVIEW =====
     setupImagePreview: function() {
-        document.querySelectorAll('input[type="file"][accept*="image"]').forEach(input => {
+        document.querySelectorAll('input[type="file"]').forEach(input => {
             input.addEventListener('change', function() {
+                // Validate file first
+                if (!this.validateFileUpload()) {
+                    return;
+                }
+                
                 const file = this.files[0];
                 if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        let preview = input.parentNode.querySelector('.image-preview');
-                        if (!preview) {
-                            preview = document.createElement('div');
-                            preview.className = 'image-preview mt-3';
-                            input.parentNode.appendChild(preview);
-                        }
+                    let preview = input.parentNode.querySelector('.file-preview');
+                    if (!preview) {
+                        preview = document.createElement('div');
+                        preview.className = 'file-preview mt-3';
+                        input.parentNode.appendChild(preview);
+                    }
+                    
+                    // Check if file is an image
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            preview.innerHTML = `
+                                <div class="d-flex align-items-center">
+                                    <img src="${e.target.result}" class="img-thumbnail me-3" style="max-width: 150px; max-height: 150px;">
+                                    <div>
+                                        <p class="mb-1"><strong>${file.name}</strong></p>
+                                        <p class="small text-muted mb-0">Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                        <span class="badge bg-success">Valid Image</span>
+                                    </div>
+                                </div>
+                            `;
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        // For non-image files (should not happen with our validation)
                         preview.innerHTML = `
-                            <img src="${e.target.result}" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
-                            <p class="small text-muted mt-2">${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</p>
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle"></i> 
+                                <strong>${file.name}</strong><br>
+                                <small>Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</small><br>
+                                <span class="badge bg-warning">Non-image file</span>
+                            </div>
                         `;
-                    };
-                    reader.readAsDataURL(file);
+                    }
+                } else {
+                    // Clear preview if no file selected
+                    const preview = input.parentNode.querySelector('.file-preview');
+                    if (preview) {
+                        preview.remove();
+                    }
                 }
             });
         });
@@ -270,6 +301,15 @@ HTMLInputElement.prototype.validateFileUpload = function() {
 
     const maxSize = this.getAttribute('data-max-size') || 10 * 1024 * 1024; // 10MB default
     const allowedTypes = this.getAttribute('accept')?.split(',').map(type => type.trim()) || [];
+    
+    // Define valid image types
+    const validImageTypes = [
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+        '.jpg', '.jpeg', '.png', '.gif', '.webp'
+    ];
+    
+    const fileType = file.type.toLowerCase();
+    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
 
     // Size validation
     if (file.size > maxSize) {
@@ -281,10 +321,24 @@ HTMLInputElement.prototype.validateFileUpload = function() {
         return false;
     }
 
-    // Type validation
+    // Enhanced image type validation
+    const isImageInput = this.name && (this.name.includes('image') || this.name.includes('picture') || this.name.includes('attachment') || this.name.includes('uid_document'));
+    
+    if (isImageInput) {
+        const isValidImageType = validImageTypes.includes(fileType) || validImageTypes.includes(fileExtension);
+        
+        if (!isValidImageType) {
+            SyrianArchive.showNotification(
+                `Only image files are allowed. Supported formats: JPG, JPEG, PNG, GIF, WEBP`,
+                'danger'
+            );
+            this.value = '';
+            return false;
+        }
+    }
+    
+    // General type validation based on accept attribute
     if (allowedTypes.length > 0) {
-        const fileType = file.type;
-        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
         const isValidType = allowedTypes.some(type => 
             type === fileType || type === fileExtension
         );

@@ -106,27 +106,30 @@
                         </div>
                         
                         <!-- Identity Documents Section -->
-        {% if profile_form.uid_document %}
+        {% if user.uid_document %}
         <div class="mb-4">
             <h5 class="mb-3">Identity Documents</h5>
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                Upload identity documents for verification purposes. This helps us maintain the authenticity of our archive.
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle me-2"></i>
+                You have already uploaded your identity document. You can update your requested role below.
             </div>
             
             <div class="mb-3">
-                <label for="{{ profile_form.uid_document.id_for_label }}" class="form-label">Identity Document</label>
-                {{ profile_form.uid_document }}
-                {% if profile_form.uid_document.help_text %}
-                    <div class="form-text">{{ profile_form.uid_document.help_text }}</div>
+                <strong>Current UID Document:</strong> 
+                <span class="badge bg-success">Uploaded</span>
+                {% if user.uid_document %}
+                    <br><small class="text-muted">Document: {{ user.uid_document.name }}</small>
                 {% endif %}
-                {% if profile_form.uid_document.errors %}
-                    <div class="text-danger">
-                        {% for error in profile_form.uid_document.errors %}
-                            <small>{{ error }}</small>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+            </div>
+            
+            <!-- Role Selection for UID holders -->
+            <div class="mb-3">
+                <label for="intended_role" class="form-label">Requested Role</label>
+                <select name="intended_role" id="intended_role" class="form-select">
+                    <option value="journalist" {% if user.intended_role == 'journalist' %}selected{% endif %}>Journalist</option>
+                    <option value="politician" {% if user.intended_role == 'politician' %}selected{% endif %}>Politician</option>
+                </select>
+                <div class="form-text">Select the role you are requesting based on your identity document.</div>
             </div>
         </div>
         {% endif %}
@@ -165,7 +168,7 @@
                             <div class="alert alert-warning">
                                 <i class="fas fa-exclamation-triangle me-2"></i>
                                 Want to become a journalist or contribute more to the archive? 
-                                <a href="#" class="alert-link">Apply for role upgrade</a>
+                                <a href="{% url 'upload_uid_document' %}" class="alert-link">Apply for role upgrade</a>
                             </div>
                         </div>
                         {% endif %}

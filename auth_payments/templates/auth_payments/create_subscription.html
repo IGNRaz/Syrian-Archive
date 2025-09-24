@@ -1,0 +1,421 @@
+{% extends "auth_payments/base.html" %}
+{% load static %}
+
+{% block title %}Choose Subscription Plan - Syrian Archive{% endblock %}
+
+{% block auth_payments_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="text-center mb-5">
+            <h2 class="section-title">
+                <i class="fas fa-star"></i>
+                Choose Your Plan
+            </h2>
+            <p class="text-muted">Select the subscription plan that best fits your needs</p>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-4 mb-4">
+        <div class="subscription-plan-card">
+            <div class="plan-header">
+                <h4>Basic</h4>
+                <div class="plan-price">$9.99</div>
+                <small class="text-muted">per month</small>
+            </div>
+            <div class="plan-features">
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success"></i> Access to basic archives</li>
+                    <li><i class="fas fa-check text-success"></i> Standard search functionality</li>
+                    <li><i class="fas fa-check text-success"></i> Email support</li>
+                    <li><i class="fas fa-check text-success"></i> Mobile app access</li>
+                    <li><i class="fas fa-times text-muted"></i> Advanced analytics</li>
+                    <li><i class="fas fa-times text-muted"></i> Priority support</li>
+                </ul>
+            </div>
+            <div class="plan-action">
+                <button class="btn btn-outline-primary w-100" onclick="selectPlan('basic', 9.99)">
+                    Choose Basic
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="subscription-plan-card featured">
+            <div class="plan-badge">Most Popular</div>
+            <div class="plan-header">
+                <h4>Premium</h4>
+                <div class="plan-price">$19.99</div>
+                <small class="text-muted">per month</small>
+            </div>
+            <div class="plan-features">
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success"></i> Access to all archives</li>
+                    <li><i class="fas fa-check text-success"></i> Advanced search & filters</li>
+                    <li><i class="fas fa-check text-success"></i> Priority email support</li>
+                    <li><i class="fas fa-check text-success"></i> Mobile app access</li>
+                    <li><i class="fas fa-check text-success"></i> Advanced analytics</li>
+                    <li><i class="fas fa-check text-success"></i> Export capabilities</li>
+                </ul>
+            </div>
+            <div class="plan-action">
+                <button class="btn btn-primary w-100" onclick="selectPlan('premium', 19.99)">
+                    Choose Premium
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="subscription-plan-card">
+            <div class="plan-header">
+                <h4>Enterprise</h4>
+                <div class="plan-price">$49.99</div>
+                <small class="text-muted">per month</small>
+            </div>
+            <div class="plan-features">
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success"></i> Everything in Premium</li>
+                    <li><i class="fas fa-check text-success"></i> API access</li>
+                    <li><i class="fas fa-check text-success"></i> 24/7 phone support</li>
+                    <li><i class="fas fa-check text-success"></i> Custom integrations</li>
+                    <li><i class="fas fa-check text-success"></i> Dedicated account manager</li>
+                    <li><i class="fas fa-check text-success"></i> White-label options</li>
+                </ul>
+            </div>
+            <div class="plan-action">
+                <button class="btn btn-outline-primary w-100" onclick="selectPlan('enterprise', 49.99)">
+                    Choose Enterprise
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Subscription Form -->
+<div class="row justify-content-center mt-5" id="subscriptionForm" style="display: none;">
+    <div class="col-md-8">
+        <div class="payment-card">
+            <h4 class="mb-4">
+                <i class="fas fa-credit-card"></i>
+                Complete Your Subscription
+            </h4>
+            
+            <form id="subscription-form" method="post">
+                {% csrf_token %}
+                
+                <!-- Plan Summary -->
+                <div class="alert alert-info" id="planSummary">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-1" id="selectedPlanName">Selected Plan</h5>
+                            <p class="mb-0 text-muted">Monthly subscription</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <h4 class="mb-0" id="selectedPlanPrice">$0.00/month</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Method Selection -->
+                <div class="mb-4">
+                    <h5 class="mb-3">Payment Method</h5>
+                    {% if payment_methods %}
+                        <div class="row">
+                            {% for method in payment_methods %}
+                            <div class="col-md-6 mb-3">
+                                <div class="payment-method-option">
+                                    <input type="radio" name="payment_method" value="{{ method.id }}" id="method_{{ method.id }}" class="form-check-input">
+                                    <label for="method_{{ method.id }}" class="form-check-label w-100">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fab fa-cc-{{ method.card_brand|lower }} fa-2x me-3"></i>
+                                            <div>
+                                                <div class="fw-bold">**** **** **** {{ method.last_four }}</div>
+                                                <small class="text-muted">Expires {{ method.expiry_month }}/{{ method.expiry_year }}</small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="{% url 'auth_payments:add_payment_method' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-plus"></i>
+                                Add New Payment Method
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            You need to add a payment method before subscribing.
+                            <a href="{% url 'auth_payments:add_payment_method' %}" class="btn btn-primary btn-sm ms-2">
+                                Add Payment Method
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Billing Address -->
+                <div class="mb-4">
+                    <h5 class="mb-3">Billing Address</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="billing_name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="billing_name" name="billing_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="billing_email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="billing_email" name="billing_email" value="{{ user.email }}" required>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="billing_address" class="form-label">Address</label>
+                            <input type="text" class="form-control" id="billing_address" name="billing_address" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="billing_city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="billing_city" name="billing_city" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="billing_state" class="form-label">State/Province</label>
+                            <input type="text" class="form-control" id="billing_state" name="billing_state" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="billing_zip" class="form-label">ZIP/Postal Code</label>
+                            <input type="text" class="form-control" id="billing_zip" name="billing_zip" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Terms and Conditions -->
+                <div class="mb-4">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="terms" name="terms" required>
+                        <label class="form-check-label" for="terms">
+                            I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="auto_renew" name="auto_renew" checked>
+                        <label class="form-check-label" for="auto_renew">
+                            Automatically renew my subscription each month
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg" id="subscribeBtn" {% if not payment_methods %}disabled{% endif %}>
+                        <i class="fas fa-lock"></i>
+                        Subscribe Now
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="cancelSubscription()">
+                        Cancel
+                    </button>
+                </div>
+                
+                <input type="hidden" name="plan" id="selectedPlan">
+                <input type="hidden" name="price" id="selectedPrice">
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Security Information -->
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="payment-card">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <i class="fas fa-shield-alt fa-2x text-success mb-2"></i>
+                    <h6>Secure Payments</h6>
+                    <small class="text-muted">Your payment information is encrypted and secure</small>
+                </div>
+                <div class="col-md-4">
+                    <i class="fas fa-undo fa-2x text-info mb-2"></i>
+                    <h6>Cancel Anytime</h6>
+                    <small class="text-muted">No long-term commitments or cancellation fees</small>
+                </div>
+                <div class="col-md-4">
+                    <i class="fas fa-headset fa-2x text-primary mb-2"></i>
+                    <h6>24/7 Support</h6>
+                    <small class="text-muted">Get help whenever you need it</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    let selectedPlanData = null;
+    
+    function selectPlan(planName, price) {
+        selectedPlanData = { name: planName, price: price };
+        
+        // Update plan summary
+        document.getElementById('selectedPlanName').textContent = planName.charAt(0).toUpperCase() + planName.slice(1) + ' Plan';
+        document.getElementById('selectedPlanPrice').textContent = '$' + price.toFixed(2) + '/month';
+        document.getElementById('selectedPlan').value = planName;
+        document.getElementById('selectedPrice').value = price;
+        
+        // Show subscription form
+        document.getElementById('subscriptionForm').style.display = 'block';
+        
+        // Scroll to form
+        document.getElementById('subscriptionForm').scrollIntoView({ behavior: 'smooth' });
+        
+        // Highlight selected plan
+        document.querySelectorAll('.subscription-plan-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        event.target.closest('.subscription-plan-card').classList.add('selected');
+    }
+    
+    function cancelSubscription() {
+        document.getElementById('subscriptionForm').style.display = 'none';
+        document.querySelectorAll('.subscription-plan-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        selectedPlanData = null;
+    }
+    
+    // Form submission
+    document.getElementById('subscription-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('subscribeBtn');
+        const originalText = submitBtn.innerHTML;
+        
+        // Disable button and show loading
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        
+        // Get form data
+        const formData = new FormData(this);
+        
+        // Submit form
+        fetch('{% url "auth_payments:create_subscription" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Subscription created successfully!', 'success');
+                setTimeout(() => {
+                    window.location.href = '{% url "auth_payments:subscriptions" %}';
+                }, 2000);
+            } else {
+                showAlert(data.error || 'Error creating subscription.', 'danger');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('An error occurred. Please try again.', 'danger');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    });
+    
+    // Auto-fill billing email with user email
+    document.addEventListener('DOMContentLoaded', function() {
+        const billingEmail = document.getElementById('billing_email');
+        if (billingEmail && !billingEmail.value) {
+            billingEmail.value = '{{ user.email|default:"" }}';
+        }
+    });
+</script>
+
+<style>
+.subscription-plan-card {
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    height: 100%;
+}
+
+.subscription-plan-card:hover {
+    border-color: #007bff;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.subscription-plan-card.featured {
+    border-color: #007bff;
+    background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+}
+
+.subscription-plan-card.selected {
+    border-color: #28a745;
+    background-color: #f8fff9;
+}
+
+.plan-badge {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #007bff;
+    color: white;
+    padding: 0.25rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.plan-header h4 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.plan-price {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #007bff;
+    margin-bottom: 0.5rem;
+}
+
+.plan-features {
+    margin: 2rem 0;
+}
+
+.plan-features li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.plan-features li:last-child {
+    border-bottom: none;
+}
+
+.payment-method-option {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.payment-method-option:hover {
+    border-color: #007bff;
+}
+
+.payment-method-option input[type="radio"]:checked + label {
+    border-color: #28a745;
+    background-color: #f8fff9;
+}
+</style>
+{% endblock %}

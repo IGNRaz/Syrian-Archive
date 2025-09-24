@@ -1,0 +1,461 @@
+{% extends "auth_payments/base.html" %}
+{% load static %}
+
+{% block title %}Payment History - Syrian Archive{% endblock %}
+
+{% block auth_payments_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="section-title mb-0">
+                <i class="fas fa-history"></i>
+                Payment History
+            </h2>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary" onclick="exportHistory()">
+                    <i class="fas fa-download"></i>
+                    Export
+                </button>
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-filter"></i>
+                        Filter
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="?filter=all">All Transactions</a></li>
+                        <li><a class="dropdown-item" href="?filter=successful">Successful</a></li>
+                        <li><a class="dropdown-item" href="?filter=failed">Failed</a></li>
+                        <li><a class="dropdown-item" href="?filter=pending">Pending</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="?type=subscription">Subscriptions</a></li>
+                        <li><a class="dropdown-item" href="?type=one_time">One-time Payments</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="payment-summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="summary-content">
+                <h4>${{ total_spent|floatformat:2 }}</h4>
+                <p class="text-muted mb-0">Total Spent</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="payment-summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="summary-content">
+                <h4>${{ this_month_spent|floatformat:2 }}</h4>
+                <p class="text-muted mb-0">This Month</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="payment-summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="summary-content">
+                <h4>{{ successful_payments }}</h4>
+                <p class="text-muted mb-0">Successful</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="payment-summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="summary-content">
+                <h4>{{ failed_payments }}</h4>
+                <p class="text-muted mb-0">Failed</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transaction List -->
+<div class="row">
+    <div class="col-12">
+        {% if transactions %}
+            <div class="payment-card">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Payment Method</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions %}
+                            <tr>
+                                <td>
+                                    <div class="transaction-date">
+                                        <strong>{{ transaction.created_at|date:"M d, Y" }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ transaction.created_at|time:"g:i A" }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="transaction-description">
+                                        <strong>{{ transaction.description|default:"Payment" }}</strong>
+                                        {% if transaction.subscription %}
+                                            <br>
+                                            <small class="text-muted">{{ transaction.subscription.plan|title }} Plan</small>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if transaction.transaction_type == 'subscription' %}bg-primary
+                                        {% elif transaction.transaction_type == 'one_time' %}bg-info
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ transaction.get_transaction_type_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong class="transaction-amount">
+                                        ${{ transaction.amount|floatformat:2 }}
+                                    </strong>
+                                </td>
+                                <td>
+                                    <span class="status-badge 
+                                        {% if transaction.status == 'completed' %}status-active
+                                        {% elif transaction.status == 'failed' %}status-failed
+                                        {% elif transaction.status == 'pending' %}status-pending
+                                        {% else %}status-pending{% endif %}">
+                                        {{ transaction.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if transaction.payment_method %}
+                                        <div class="payment-method-info">
+                                            <i class="fab fa-cc-{{ transaction.payment_method.card_brand|lower }}"></i>
+                                            **** {{ transaction.payment_method.last_four }}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item" href="#" onclick="viewTransactionDetails({{ transaction.id }})">
+                                                    <i class="fas fa-eye"></i> View Details
+                                                </a>
+                                            </li>
+                                            {% if transaction.status == 'completed' %}
+                                            <li>
+                                                <a class="dropdown-item" href="#" onclick="downloadReceipt({{ transaction.id }})">
+                                                    <i class="fas fa-download"></i> Download Receipt
+                                                </a>
+                                            </li>
+                                            {% endif %}
+                                            {% if transaction.status == 'failed' and transaction.transaction_type == 'subscription' %}
+                                            <li>
+                                                <a class="dropdown-item" href="#" onclick="retryPayment({{ transaction.id }})">
+                                                    <i class="fas fa-redo"></i> Retry Payment
+                                                </a>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <nav aria-label="Transaction pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">
+                                    <i class="fas fa-angle-double-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">
+                                    <i class="fas fa-angle-left"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">
+                                    <i class="fas fa-angle-right"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">
+                                    <i class="fas fa-angle-double-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="payment-card text-center">
+                <i class="fas fa-receipt fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No Payment History</h4>
+                <p class="text-muted mb-4">
+                    You haven't made any payments yet. When you do, they'll appear here.
+                </p>
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="{% url 'auth_payments:create_subscription' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Start Subscription
+                    </a>
+                    <a href="{% url 'auth_payments:payment_methods' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-credit-card"></i>
+                        Add Payment Method
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Transaction Details Modal -->
+<div class="modal fade" id="transactionDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-receipt"></i>
+                    Transaction Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="transactionDetailsContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="downloadReceiptBtn" style="display: none;">
+                    <i class="fas fa-download"></i>
+                    Download Receipt
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    function viewTransactionDetails(transactionId) {
+        fetch(`/auth/api/transaction/${transactionId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const transaction = data.transaction;
+                    const content = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Transaction Information</h6>
+                                <p><strong>ID:</strong> ${transaction.external_transaction_id || transaction.id}</p>
+                                <p><strong>Amount:</strong> $${parseFloat(transaction.amount).toFixed(2)}</p>
+                                <p><strong>Status:</strong> 
+                                    <span class="status-badge status-${transaction.status}">${transaction.status}</span>
+                                </p>
+                                <p><strong>Type:</strong> ${transaction.transaction_type}</p>
+                                <p><strong>Date:</strong> ${new Date(transaction.created_at).toLocaleString()}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Payment Information</h6>
+                                ${transaction.payment_method ? `
+                                    <p><strong>Payment Method:</strong> **** **** **** ${transaction.payment_method.last_four}</p>
+                                    <p><strong>Card Brand:</strong> ${transaction.payment_method.card_brand}</p>
+                                ` : '<p><strong>Payment Method:</strong> N/A</p>'}
+                                ${transaction.subscription ? `
+                                    <p><strong>Subscription:</strong> ${transaction.subscription.plan} Plan</p>
+                                ` : ''}
+                                ${transaction.description ? `
+                                    <p><strong>Description:</strong> ${transaction.description}</p>
+                                ` : ''}
+                            </div>
+                        </div>
+                        ${transaction.failure_reason ? `
+                            <div class="alert alert-danger mt-3">
+                                <strong>Failure Reason:</strong> ${transaction.failure_reason}
+                            </div>
+                        ` : ''}
+                    `;
+                    document.getElementById('transactionDetailsContent').innerHTML = content;
+                    
+                    // Show download button for completed transactions
+                    const downloadBtn = document.getElementById('downloadReceiptBtn');
+                    if (transaction.status === 'completed') {
+                        downloadBtn.style.display = 'block';
+                        downloadBtn.onclick = () => downloadReceipt(transactionId);
+                    } else {
+                        downloadBtn.style.display = 'none';
+                    }
+                    
+                    new bootstrap.Modal(document.getElementById('transactionDetailsModal')).show();
+                } else {
+                    showAlert('Error loading transaction details.', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('An error occurred. Please try again.', 'danger');
+            });
+    }
+    
+    function downloadReceipt(transactionId) {
+        window.open(`/auth/api/transaction/${transactionId}/receipt/`, '_blank');
+    }
+    
+    function retryPayment(transactionId) {
+        if (confirm('Are you sure you want to retry this payment?')) {
+            fetch(`/auth/api/transaction/${transactionId}/retry/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Payment retry initiated successfully!', 'success');
+                    location.reload();
+                } else {
+                    showAlert(data.error || 'Error retrying payment.', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('An error occurred. Please try again.', 'danger');
+            });
+        }
+    }
+    
+    function exportHistory() {
+        const currentUrl = new URL(window.location);
+        const params = new URLSearchParams(currentUrl.search);
+        params.set('export', 'csv');
+        
+        window.open(`${currentUrl.pathname}?${params.toString()}`, '_blank');
+    }
+</script>
+
+<style>
+.payment-summary-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.payment-summary-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+.summary-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+}
+
+.summary-icon i {
+    color: white;
+    font-size: 1.5rem;
+}
+
+.summary-content h4 {
+    margin-bottom: 0.25rem;
+    color: #2c3e50;
+    font-weight: 700;
+}
+
+.transaction-date strong {
+    color: #2c3e50;
+}
+
+.transaction-description strong {
+    color: #2c3e50;
+}
+
+.transaction-amount {
+    color: #28a745;
+    font-size: 1.1rem;
+}
+
+.payment-method-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.payment-method-info i {
+    font-size: 1.2rem;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+    background-color: #f8f9fa;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}

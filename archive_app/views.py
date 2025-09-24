@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LoginView, LogoutView, PasswordResetView, PasswordResetConfirmView
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q, Count
@@ -13,6 +13,11 @@ from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from functools import wraps
+from .logging_utils import (
+    log_user_login, log_user_logout, log_user_registration, 
+    log_password_reset, log_post_creation, log_post_verification,
+    log_admin_action, log_security_event, file_logger
+)
 from .models import (
     User, Profile, Person, Event, Post, Comment, PostVerification, 
     PostReport, Like, VerificationRequest, AuditLog, PostTrust, IPBan
@@ -152,16 +157,186 @@ class CustomLoginView(LoginView):
         return reverse_lazy('dashboard')
     
     def form_valid(self, form):
-        messages.success(self.request, f'Welcome back, {form.get_user().get_full_name() or form.get_user().username}!')
+        user = form.get_user()
+        ip_address = self.get_client_ip()
+        
+        # Log successful login with structured format
+        file_logger.log_authentication(
+            'USER_LOGIN_SUCCESS', 
+            user, 
+            ip_address, 
+            extra_info={'login_method': 'web_form', 'user_agent': self.request.META.get('HTTP_USER_AGENT', 'Unknown')}
+        )
+        
+        messages.success(self.request, f'Welcome back, {user.get_full_name() or user.username}!')
         return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        ip_address = self.get_client_ip()
+        username = form.data.get('username', 'Unknown')
+        
+        # Log failed login attempt as security event
+        file_logger.log_security(
+            ip_address=ip_address,
+            message=f'Failed login attempt for username: {username}',
+            extra_data={
+                'attempted_username': username,
+                'user_agent': self.request.META.get('HTTP_USER_AGENT', 'Unknown'),
+                'event_type': 'failed_login',
+                'timestamp': timezone.now().isoformat()
+            }
+        )
+        
+        # Detect suspicious activity patterns
+        from .signals import detect_suspicious_activity
+        detect_suspicious_activity(ip_address, 'failed_login')
+        
+        return super().form_invalid(form)
+    
+    def get_client_ip(self):
+        """Get client IP address"""
+        x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = self.request.META.get('REMOTE_ADDR')
+        return ip
 
 class CustomLogoutView(LogoutView):
     """Custom logout view"""
     next_page = 'home'
     
     def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            # Log logout before the user is logged out
+            ip_address = self.get_client_ip(request)
+            user = request.user
+            file_logger.log_authentication(
+                'USER_LOGOUT',
+                user,
+                ip_address,
+                extra_info={'session_duration': 'calculated', 'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown')}
+            )
+        
         messages.success(request, 'You have been successfully logged out.')
         return super().dispatch(request, *args, **kwargs)
+    
+    def get_client_ip(self, request):
+        """Get client IP address"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
+class CustomPasswordResetView(PasswordResetView):
+    """Custom password reset view with logging"""
+    template_name = 'registration/password_reset.html'
+    email_template_name = 'registration/password_reset_email.html'
+    success_url = '/password_reset/done/'
+    
+    def form_valid(self, form):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.http import urlsafe_base64_encode
+        from django.utils.encoding import force_bytes
+        from django.urls import reverse
+        
+        email = form.cleaned_data['email']
+        ip_address = self.get_client_ip()
+        
+        # Try to find user by email
+        User = get_user_model()
+        try:
+            user = User.objects.get(email=email)
+            
+            # Generate reset token and uidb64 (same as Django does internally)
+            token = default_token_generator.make_token(user)
+            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+            
+            # Construct the reset link
+            protocol = 'https' if self.request.is_secure() else 'http'
+            domain = self.request.get_host()
+            reset_path = reverse('password_reset_confirm', kwargs={'uidb64': uidb64, 'token': token})
+            reset_link = f"{protocol}://{domain}{reset_path}"
+            
+            # Log password reset request with the actual link
+            file_logger.log_password_reset_link(
+                user=user,
+                ip_address=ip_address,
+                reset_link=reset_link,
+                user_agent=self.request.META.get('HTTP_USER_AGENT', 'Unknown')
+            )
+            
+            # Also log to authentication log
+            file_logger.log_authentication(
+                event_type='PASSWORD_RESET_REQUESTED',
+                user=user,
+                ip_address=ip_address,
+                extra_info={'email': email, 'user_agent': self.request.META.get('HTTP_USER_AGENT', 'Unknown'), 'message': f'Password reset requested for email: {email}'}
+            )
+            
+        except User.DoesNotExist:
+            # Log failed password reset attempt as security event
+            file_logger.log_security(
+                ip_address=ip_address,
+                message=f'Password reset attempted for non-existent email: {email}',
+                extra_data={'attempted_email': email, 'user_agent': self.request.META.get('HTTP_USER_AGENT', 'Unknown'), 'event_type': 'PASSWORD_RESET_INVALID_EMAIL'}
+            )
+        
+        return super().form_valid(form)
+    
+    def get_client_ip(self):
+        """Get client IP address"""
+        x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = self.request.META.get('REMOTE_ADDR')
+        return ip
+
+class CustomPasswordResetConfirmView(PasswordResetConfirmView):
+    """Custom password reset confirm view with logging"""
+    template_name = 'registration/password_reset_confirm.html'
+    success_url = '/reset/done/'
+    
+    def form_valid(self, form):
+        user = form.user
+        ip_address = self.get_client_ip()
+        
+        # Log successful password reset completion
+        file_logger.log_authentication(
+            'PASSWORD_RESET_COMPLETED', 
+            user, 
+            ip_address, 
+            f'Password successfully reset for user: {user.username}',
+            extra_info={
+                'user_id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'user_agent': self.request.META.get('HTTP_USER_AGENT', 'Unknown')
+            }
+        )
+        
+        return super().form_valid(form)
+    
+    def get_client_ip(self):
+        """Get client IP address"""
+        x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = self.request.META.get('REMOTE_ADDR')
+        return ip
+
+def get_client_ip(request):
+    """Get client IP address"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
 
 def register(request):
     """User registration"""
@@ -175,11 +350,17 @@ def register(request):
             # Create profile for the user
             Profile.objects.get_or_create(user=user)
             
+            # Log user registration
+            ip_address = get_client_ip(request)
+            log_user_registration(user, ip_address)
+            
             username = form.cleaned_data.get('username')
             messages.success(request, f'Account created for {username}! You can now log in.')
             
             # Log the user in automatically
-            login(request, user)
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            log_user_login(user, ip_address, success=True)
+            
             messages.info(request, 'Please upload your UID document to complete your registration and unlock additional features.')
             return redirect('upload_uid_document')
         else:
@@ -191,20 +372,61 @@ def register(request):
 
 @login_required
 def upload_uid_document(request):
-    """Upload UID document after registration"""
+    """Upload UID document after registration - completely optional"""
     if request.user.uid_document:
         messages.info(request, 'You have already uploaded your UID document.')
         return redirect('dashboard')
     
     if request.method == 'POST':
         uid_document = request.FILES.get('uid_document')
-        if uid_document:
-            request.user.uid_document = uid_document
+        intended_role = request.POST.get('intended_role', '').strip()  # Clean whitespace
+        
+        # Handle all combinations: document + role, document only, role only, or neither
+        has_document = bool(uid_document)
+        has_role = bool(intended_role)
+        
+        if has_document or has_role:
+            # Update user data only if there's something to save
+            if has_document:
+                request.user.uid_document = uid_document
+            if has_role:
+                request.user.intended_role = intended_role
+            elif has_document:
+                # Clear role if document uploaded but no role selected
+                request.user.intended_role = ''
+            
             request.user.save()
-            messages.success(request, 'UID document uploaded successfully! An admin will review it for verification.')
-            return redirect('dashboard')
+            
+            # Log the action
+            if has_document and has_role:
+                log_message = f"User {request.user.username} uploaded UID document with intended role: {intended_role}"
+                success_message = f'Document uploaded and role ({intended_role}) saved successfully! An admin will review for verification.'
+            elif has_document:
+                log_message = f"User {request.user.username} uploaded UID document for identity verification only"
+                success_message = 'Document uploaded successfully! Your identity will be verified by an admin.'
+            else:  # has_role only
+                log_message = f"User {request.user.username} saved role preference: {intended_role}"
+                success_message = f'Role preference ({intended_role}) saved successfully! You can upload your document anytime.'
+            
+            file_logger.log_user_action(
+                user=request.user,
+                ip_address=get_client_ip(request),
+                message=log_message,
+                extra_data={
+                    'user_id': request.user.id,
+                    'username': request.user.username,
+                    'intended_role': intended_role or 'none',
+                    'has_uid_document': has_document,
+                    'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown')
+                }
+            )
+            
+            messages.success(request, success_message)
         else:
-            messages.error(request, 'Please select a UID document to upload.')
+            # Neither document nor role provided - completely valid
+            messages.info(request, 'Form submitted successfully! You can upload a document or select a role anytime from your profile.')
+        
+        return redirect('dashboard')
     
     return render(request, 'registration/upload_uid.html')
 
@@ -213,6 +435,15 @@ def change_password(request):
     """Change user password"""
     from django.contrib.auth.forms import PasswordChangeForm
     
+    def get_client_ip():
+        """Get client IP address"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
     if request.method == 'POST':
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
@@ -220,6 +451,16 @@ def change_password(request):
             # Update session to prevent logout
             from django.contrib.auth import update_session_auth_hash
             update_session_auth_hash(request, user)
+            
+            # Log password change
+            ip_address = get_client_ip()
+            file_logger.log_authentication(
+            event_type='PASSWORD_CHANGED',
+            user=user,
+            ip_address=ip_address,
+            extra_info={'message': 'User changed their password successfully'}
+        )
+            
             messages.success(request, 'Your password has been successfully updated!')
             return redirect('profile_edit')
         else:
@@ -249,12 +490,36 @@ def post_list(request):
 @login_required
 def post_create(request):
     """Create a new post"""
+    def get_client_ip(request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
     if request.method == 'POST':
         form = PostForm(request.POST, request.FILES)
         if form.is_valid():
             post = form.save(commit=False)
             post.user = request.user
             post.save()
+            
+            # Log user action
+            file_logger.log_user_action(
+                user=request.user,
+                ip_address=get_client_ip(request),
+                message=f"User {request.user.username} created new post {post.id}",
+                extra_data={
+                    'post_id': post.id,
+                    'post_title': post.title or f'Post {post.id}',
+                    'post_status': post.status,
+                    'has_attachment': bool(post.attachment),
+                    'content_length': len(post.content) if post.content else 0,
+                    'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown')
+                }
+            )
+            
             messages.success(request, 'Post created successfully!')
             return redirect('post_list')
     else:
@@ -299,20 +564,70 @@ def post_detail(request, pk):
 @login_required
 def post_edit(request, pk):
     """Edit post (only by owner)"""
+    def get_client_ip(request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
     post = get_object_or_404(Post, pk=pk, user=request.user)
     if request.method == 'POST':
+        # Store original values for comparison
+        original_title = post.title
+        original_content = post.content
+        original_attachment = post.attachment
+        
+        # Handle remove_attachment checkbox
+        if request.POST.get('remove_attachment'):
+            post.attachment.delete(save=False)
+            post.attachment = None
+        
         form = PostForm(request.POST, request.FILES, instance=post)
         if form.is_valid():
-            form.save()
+            updated_post = form.save()
+            
+            # Log user action
+            changes = []
+            if original_title != updated_post.title:
+                changes.append('title')
+            if original_content != updated_post.content:
+                changes.append('content')
+            if original_attachment != updated_post.attachment:
+                changes.append('attachment')
+            
+            file_logger.log_user_action(
+                user=request.user,
+                ip_address=get_client_ip(request),
+                message=f"User {request.user.username} edited post {post.id}",
+                extra_data={
+                    'post_id': post.id,
+                    'post_title': updated_post.title or f'Post {post.id}',
+                    'changes_made': changes,
+                    'has_attachment': bool(updated_post.attachment),
+                    'content_length': len(updated_post.content) if updated_post.content else 0,
+                    'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown')
+                }
+            )
+            
             messages.success(request, 'Post updated successfully!')
             return redirect('post_detail', pk=pk)
     else:
         form = PostForm(instance=post)
-    return render(request, 'posts/post_form.html', {'form': form, 'title': 'Edit Post', 'post': post})
+    return render(request, 'posts/post_edit.html', {'form': form, 'title': 'Edit Post', 'post': post})
 
 @login_required
 def post_delete(request, pk):
     """Delete post (only by owner or admin)"""
+    def get_client_ip(request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
     post = get_object_or_404(Post, pk=pk)
     
     # Check if user is the owner or an admin
@@ -326,11 +641,18 @@ def post_delete(request, pk):
         
         # Log admin deletion
         if is_admin(request.user) and post.user != request.user:
-            AuditLog.objects.create(
-                admin=request.user,
-                action_type='post_deleted',
-                target_post=post,
-                description=f'Admin deleted post "{post_title}" by {post_owner}'
+            file_logger.log_admin_action(
+                action_type=f"Post Deletion",
+                admin_user=request.user,
+                ip_address=get_client_ip(request),
+                details=f'Admin {request.user.username} deleted post "{post_title}" by {post_owner}',
+                extra_data={
+                    'post_id': post.id,
+                    'post_title': post_title,
+                    'post_author': post_owner,
+                    'action': 'delete',
+                    'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown')
+                }
             )
         
         post.delete()
@@ -349,14 +671,38 @@ def post_delete(request, pk):
 @require_POST
 def toggle_like(request, pk):
     """Toggle like on a post"""
+    def get_client_ip(request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
     post = get_object_or_404(Post, pk=pk)
     like, created = Like.objects.get_or_create(post=post, user=request.user)
     
     if not created:
         like.delete()
         liked = False
+        action = 'unliked'
     else:
         liked = True
+        action = 'liked'
+    
+    # Log user action
+    file_logger.log_user_action(
+        user=request.user,
+        ip_address=get_client_ip(request),
+        message=f"User {request.user.username} {action} post {post.id}",
+        extra_data={
+            'post_id': post.id,
+            'post_title': post.title or f'Post {post.id}',
+            'action': action,
+            'like_count': post.likes.count(),
+            'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown')
+        }
+    )
     
     return JsonResponse({
         'liked': liked,
@@ -398,6 +744,14 @@ def toggle_trust(request, pk):
 @login_required
 def report_post(request, pk):
     """Report a post"""
+    def get_client_ip(request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
     post = get_object_or_404(Post, pk=pk)
     
     # Check if user already reported this post
@@ -416,6 +770,24 @@ def report_post(request, pk):
             # Increment report count
             post.report_count += 1
             post.save()
+            
+            # Log user action
+            file_logger.log_user_action(
+                user=request.user,
+                ip_address=get_client_ip(request),
+                message=f"User {request.user.username} reported post {post.id}",
+                extra_data={
+                    'post_id': post.id,
+                    'post_title': post.title or f'Post {post.id}',
+                    'report_reason': report.reason,
+                    'post_report_count': post.report_count,
+                    'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown')
+                }
+            )
+            
+            # Detect suspicious reporting patterns
+            from .signals import detect_suspicious_activity
+            detect_suspicious_activity(get_client_ip(request), 'post_report')
             
             messages.success(request, 'Post reported successfully!')
             return redirect('post_detail', pk=pk)
@@ -650,6 +1022,14 @@ def profile_view(request, username=None):
 @login_required
 def profile_edit(request):
     """Edit user profile"""
+    def get_client_ip(request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
     # Ensure user has a profile
     try:
         profile = request.user.profile
@@ -657,12 +1037,53 @@ def profile_edit(request):
         profile = Profile.objects.create(user=request.user)
     
     if request.method == 'POST':
+        # Store original values for comparison
+        original_first_name = request.user.first_name
+        original_last_name = request.user.last_name
+        original_email = request.user.email
+        original_bio = profile.bio
+        original_intended_role = request.user.intended_role
+        
         user_form = UserEditForm(request.POST, request.FILES, instance=request.user)
         profile_form = ProfileForm(request.POST, request.FILES, instance=profile, user=request.user)
         
         if user_form.is_valid() and profile_form.is_valid():
-            user_form.save()
-            profile_form.save()
+            updated_user = user_form.save()
+            updated_profile = profile_form.save()
+            
+            # Handle intended_role update for users with UID documents
+            if request.user.uid_document and 'intended_role' in request.POST:
+                new_intended_role = request.POST.get('intended_role')
+                if new_intended_role in ['journalist', 'politician']:
+                    updated_user.intended_role = new_intended_role
+                    updated_user.save()
+            
+            # Log user action
+            changes = []
+            if original_first_name != updated_user.first_name:
+                changes.append('first_name')
+            if original_last_name != updated_user.last_name:
+                changes.append('last_name')
+            if original_email != updated_user.email:
+                changes.append('email')
+            if original_bio != updated_profile.bio:
+                changes.append('bio')
+            if original_intended_role != updated_user.intended_role:
+                changes.append('intended_role')
+            
+            file_logger.log_user_action(
+                user=request.user,
+                ip_address=get_client_ip(request),
+                message=f"User {request.user.username} updated profile",
+                extra_data={
+                    'user_id': request.user.id,
+                    'username': request.user.username,
+                    'changes_made': changes,
+                    'intended_role': updated_user.intended_role if 'intended_role' in changes else None,
+                    'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown')
+                }
+            )
+            
             messages.success(request, 'Profile updated successfully!')
             return redirect('profile_view')
     else:
@@ -759,6 +1180,14 @@ def admin_users(request):
 @admin_required
 def admin_user_detail(request, pk):
     """Admin user detail and management"""
+    def get_client_ip(request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
     user = get_object_or_404(User, pk=pk)
     user_posts = Post.objects.filter(user=user).order_by('-created_at')[:10]
     user_reports = PostReport.objects.filter(user=user).order_by('-created_at')[:10]
@@ -774,10 +1203,12 @@ def admin_user_detail(request, pk):
                 user.save()
                 
                 # Log the action
-                AuditLog.objects.create(
-                    admin=request.user,
-                    action_type='role_change',
-                    target_user=user
+                file_logger.log_admin_action(
+                    action_type=f"User Role Change",
+                    admin_user=request.user,
+                    target_user=user,
+                    ip_address=get_client_ip(request),
+                    details=f"Admin {request.user.username} changed user {user.username} role from {old_role} to {new_role}"
                 )
                 
                 messages.success(request, f'User role changed from {old_role} to {new_role}')
@@ -785,12 +1216,48 @@ def admin_user_detail(request, pk):
         elif action == 'confirm_identity':
             user.identity_confirmed = True
             user.save()
+            
+            # Log the action
+            file_logger.log_admin_action(
+                action_type=f"Identity Confirmation",
+                admin_user=request.user,
+                target_user=user,
+                ip_address=get_client_ip(request),
+                details=f"Admin {request.user.username} confirmed identity for user {user.username}"
+            )
+            
             messages.success(request, 'User identity confirmed')
         
+        elif action == 'revoke_identity':
+            user.identity_confirmed = False
+            user.save()
+            
+            # Log the action
+            file_logger.log_admin_action(
+                action_type=f"Identity Revocation",
+                admin_user=request.user,
+                target_user=user,
+                ip_address=get_client_ip(request),
+                details=f"Admin {request.user.username} revoked identity verification for user {user.username}"
+            )
+            
+            messages.success(request, 'User identity verification revoked')
+        
         elif action == 'toggle_active':
+            old_status = user.is_active
             user.is_active = not user.is_active
             user.save()
             status = 'activated' if user.is_active else 'deactivated'
+            
+            # Log the action
+            file_logger.log_admin_action(
+                action_type=f"User Status Change",
+                admin_user=request.user,
+                target_user=user,
+                ip_address=get_client_ip(request),
+                details=f"Admin {request.user.username} {status} user {user.username}"
+            )
+            
             messages.success(request, f'User {status} successfully')
         
         elif action == 'ban_user':
@@ -803,10 +1270,12 @@ def admin_user_detail(request, pk):
             user.save()
             
             # Log the action
-            AuditLog.objects.create(
-                admin=request.user,
-                action_type='user_banned',
-                target_user=user
+            file_logger.log_admin_action(
+                action_type=f"User Ban",
+                admin_user=request.user,
+                target_user=user,
+                ip_address=get_client_ip(request),
+                details=f"Admin {request.user.username} banned user {user.username}. Reason: {ban_reason}"
             )
             
             messages.success(request, f'User banned successfully. Reason: {ban_reason}')
@@ -820,10 +1289,12 @@ def admin_user_detail(request, pk):
             user.save()
             
             # Log the action
-            AuditLog.objects.create(
-                admin=request.user,
-                action_type='user_unbanned',
-                target_user=user
+            file_logger.log_admin_action(
+                action_type=f"User Unban",
+                admin_user=request.user,
+                target_user=user,
+                ip_address=get_client_ip(request),
+                details=f"Admin {request.user.username} unbanned user {user.username}"
             )
             
             messages.success(request, 'User unbanned successfully')
@@ -834,10 +1305,12 @@ def admin_user_detail(request, pk):
                 messages.error(request, 'Cannot delete admin users')
             else:
                 # Log the action before deletion
-                AuditLog.objects.create(
-                    admin=request.user,
-                    action_type='user_deleted',
-                    target_user=user
+                file_logger.log_admin_action(
+                    action_type=f"User Deletion",
+                    admin_user=request.user,
+                    target_user=user,
+                    ip_address=get_client_ip(request),
+                    details=f"Admin {request.user.username} deleted user {username}"
                 )
                 
                 username = user.username
@@ -879,6 +1352,14 @@ def admin_posts(request):
 @admin_required
 def admin_post_detail(request, pk):
     """Admin post detail and management"""
+    def get_client_ip(request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
     post = get_object_or_404(Post, pk=pk)
     post_reports = PostReport.objects.filter(post=post).select_related('user').order_by('-created_at')
     
@@ -893,10 +1374,12 @@ def admin_post_detail(request, pk):
                 post.save()
                 
                 # Log the action
-                AuditLog.objects.create(
-                    admin=request.user,
-                    action_type='post_status',
-                    target_post=post
+                file_logger.log_admin_action(
+                    action_type=f"Post Status Change",
+                    admin_user=request.user,
+                    target_user=post.user,
+                    ip_address=get_client_ip(request),
+                    details=f"Admin {request.user.username} changed post {post.id} status from {old_status} to {new_status}"
                 )
                 
                 messages.success(request, f'Post status changed from {old_status} to {new_status}')
@@ -913,6 +1396,14 @@ def admin_post_detail(request, pk):
 @admin_required
 def admin_post_status_update(request, pk):
     """Update post status from admin panel"""
+    def get_client_ip(request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
     post = get_object_or_404(Post, pk=pk)
     
     if request.method == 'POST':
@@ -929,11 +1420,19 @@ def admin_post_status_update(request, pk):
             if admin_notes:
                 description += f'. Notes: {admin_notes}'
             
-            AuditLog.objects.create(
-                admin=request.user,
-                action_type='post_status',
-                target_post=post,
-                description=description
+            file_logger.log_admin_action(
+                action_type=f"Post Status Update",
+                admin_user=request.user,
+                ip_address=get_client_ip(request),
+                details={
+                    'post_id': post.id,
+                    'post_title': post.title or f'Post {post.id}',
+                    'post_author': post.user.username,
+                    'old_status': old_status,
+                    'new_status': new_status,
+                    'admin_notes': admin_notes,
+                    'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown')
+                }
             )
             
             messages.success(request, f'Post status changed from {old_status} to {new_status}')
@@ -1409,3 +1908,68 @@ def admin_ip_ban_detail(request, pk):
         'ip_ban': ip_ban,
     }
     return render(request, 'admin/ip_ban_detail.html', context)
+
+@admin_required
+def admin_logs(request):
+    """Admin view to display system logs"""
+    log_type = request.GET.get('type', 'authentication')
+    search_term = request.GET.get('search', '')
+    lines_count = int(request.GET.get('lines', 50))
+    
+    # Available log types with detailed descriptions
+    log_types = [
+        ('authentication', 'User Authentication (Login, Logout, Password Reset)'),
+        ('user_actions', 'User Actions (Profile Updates, General Activities)'),
+        ('admin_actions', 'Admin Actions (User Management, System Changes)'),
+        ('post_actions', 'Post Actions (Creation, Verification, Moderation)'),
+        ('security', 'Security Events (Failed Logins, Suspicious Activities)'),
+        ('system', 'Server Logs (System Events, Errors, Performance)')
+    ]
+    
+    logs = []
+    if search_term:
+        # Search in logs
+        logs = file_logger.search_logs(log_type, search_term, max_results=100)
+    else:
+        # Get recent logs
+        recent_logs = file_logger.get_recent_logs(log_type, lines=lines_count)
+        logs = [{
+            'line_number': idx + 1,
+            'content': line.strip(),
+            'timestamp': line.split(']')[0][1:] if ']' in line else 'Unknown'
+        } for idx, line in enumerate(recent_logs)]
+    
+    context = {
+        'logs': logs,
+        'log_types': log_types,
+        'current_log_type': log_type,
+        'search_term': search_term,
+        'lines_count': lines_count,
+        'total_logs': len(logs)
+    }
+    
+    return render(request, 'admin/logs.html', context)
+
+@admin_required
+def admin_logs_download(request):
+    """Download log file"""
+    from django.http import HttpResponse
+    import os
+    
+    log_type = request.GET.get('type', 'authentication')
+    log_filename = file_logger.get_log_filename(log_type)
+    
+    if not os.path.exists(log_filename):
+        messages.error(request, f'Log file for {log_type} does not exist.')
+        return redirect('admin_logs')
+    
+    try:
+        with open(log_filename, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        response = HttpResponse(content, content_type='text/plain')
+        response['Content-Disposition'] = f'attachment; filename="{log_type}_{timezone.now().strftime("%Y-%m-%d")}.log"'
+        return response
+    except Exception as e:
+        messages.error(request, f'Error downloading log file: {str(e)}')
+        return redirect('admin_logs')

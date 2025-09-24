@@ -77,8 +77,8 @@ class CustomAuthenticationForm(AuthenticationForm):
 
 class ProfileForm(forms.ModelForm):
     """Form for editing user profile"""
-    profile_picture = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'}))
-    uid_document = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png'}))
+    profile_picture = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp'}))
+    uid_document = forms.FileField(required=False, widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png'}))
     
     class Meta:
         model = Profile
@@ -137,7 +137,7 @@ class PostForm(forms.ModelForm):
     """Form for creating and editing posts"""
     class Meta:
         model = Post
-        fields = ['title', 'content', 'image', 'event', 'people']
+        fields = ['title', 'content', 'attachment', 'event', 'people']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -148,9 +148,9 @@ class PostForm(forms.ModelForm):
                 'rows': 6,
                 'placeholder': 'Share your story, news, or information...'
             }),
-            'image': forms.FileInput(attrs={
+            'attachment': forms.FileInput(attrs={
                 'class': 'form-control',
-                'accept': 'image/*'
+                'accept': '.jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp'
             }),
             'event': forms.Select(attrs={
                 'class': 'form-select'
@@ -172,16 +172,16 @@ class CommentForm(forms.ModelForm):
     """Form for adding comments to posts"""
     class Meta:
         model = Comment
-        fields = ['content', 'image']
+        fields = ['content', 'attachment']
         widgets = {
             'content': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
                 'placeholder': 'Add your comment...'
             }),
-            'image': forms.FileInput(attrs={
+            'attachment': forms.FileInput(attrs={
                 'class': 'form-control',
-                'accept': 'image/*'
+                'accept': '.jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp'
             })
         }
 
@@ -267,13 +267,20 @@ class PostReportForm(forms.ModelForm):
 
 class VerificationRequestForm(forms.ModelForm):
     """Form for requesting role verification"""
+    
     class Meta:
         model = VerificationRequest
         fields = ['requested_role']
         widgets = {
-            'requested_role': forms.Select(attrs={
-                'class': 'form-select'
-            })
+            'requested_role': forms.Select(
+                choices=[
+                    ('journalist', 'Journalist'),
+                    ('politician', 'Politician')
+                ],
+                attrs={
+                    'class': 'form-select'
+                }
+            )
         }
     
     def __init__(self, *args, **kwargs):

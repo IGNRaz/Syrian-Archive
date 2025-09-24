@@ -102,9 +102,9 @@
                     </div>
                     
                     <!-- Post Image -->
-                    {% if post.image %}
+                    {% if post.attachment %}
                         <div class="mb-4">
-                            <img src="{{ post.image.url }}" class="img-fluid rounded" 
+                            <img src="{{ post.attachment.url }}" class="img-fluid rounded" 
                                  alt="Post image" style="max-height: 500px; width: 100%; object-fit: cover;">
                         </div>
                     {% endif %}
@@ -231,7 +231,7 @@
                                     <textarea name="content" class="form-control mb-2" rows="3" 
                                               placeholder="Write a comment..." required></textarea>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <input type="file" name="image" class="form-control" style="max-width: 200px;" accept="image/*">
+                                        <input type="file" name="attachment" class="form-control" style="max-width: 200px;" accept=".jpg,.jpeg,.png,.gif,.webp">
                                         <button type="submit" class="btn btn-primary btn-sm">
                                             <i class="bi bi-send"></i> Comment
                                         </button>
@@ -262,8 +262,8 @@
                                             <small class="text-muted">{{ comment.created_at|timesince }} ago</small>
                                         </div>
                                         <p class="mb-2">{{ comment.content }}</p>
-                                        {% if comment.image %}
-                                            <img src="{{ comment.image.url }}" class="img-fluid rounded mt-2" 
+                                        {% if comment.attachment %}
+                                            <img src="{{ comment.attachment.url }}" class="img-fluid rounded mt-2" 
                                                  style="max-height: 200px;" alt="Comment image">
                                         {% endif %}
                                     </div>

@@ -13,8 +13,8 @@
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            {% if profile_user.profile.profile_picture %}
-                                <img src="{{ profile_user.profile.profile_picture.url }}" 
+                            {% if profile_user.profile_picture %}
+                                <img src="{{ profile_user.profile_picture.url }}" 
                                      alt="{{ profile_user.get_full_name|default:profile_user.username }}" 
                                      class="rounded-circle profile-picture" 
                                      width="120" height="120" style="object-fit: cover;">

@@ -84,8 +84,8 @@
                 {% for post in recent_posts %}
                 <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card h-100">
-                        {% if post.image %}
-                            <img src="{{ post.image.url }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Post image">
+                        {% if post.attachment %}
+                            <img src="{{ post.attachment.url }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Post attachment">
                         {% endif %}
                         <div class="card-body">
                             <h5 class="card-title">{{ post.title|truncatechars:50 }}</h5>

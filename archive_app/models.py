@@ -15,9 +15,10 @@ class User(AbstractUser):
         ('admin', 'Admin'),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='normal')
-    uid_document = models.ImageField(upload_to='uid_docs/', null=True, blank=True)
+    uid_document = models.FileField(upload_to='uid_docs/', null=True, blank=True)
+    intended_role = models.CharField(max_length=20, choices=[('journalist', 'Journalist'), ('politician', 'Politician')], null=True, blank=True, help_text='Role requested during UID upload')
     profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
-    identity_confirmed = models.BooleanField(default=False)  # تم التحقق من الهوية
+    identity_confirmed = models.BooleanField(default=False) 
     is_banned = models.BooleanField(default=False)  # User ban status
     ban_reason = models.TextField(blank=True, null=True)  # Reason for ban
     banned_at = models.DateTimeField(blank=True, null=True)  # When user was banned
@@ -89,16 +90,20 @@ class Post(models.Model):
     people = models.ManyToManyField(Person, blank=True, related_name="posts")
     title = models.CharField(max_length=255, blank=True, null=True)
     content = models.TextField()
-    image = models.ImageField(upload_to='posts/', blank=True, null=True)
+    attachment = models.FileField(upload_to='posts/', blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending_review')
     report_count = models.PositiveIntegerField(default=0)
     is_verified = models.BooleanField(default=False)  # Post verification status
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        # Auto-verify posts by admins and politicians
+        # Auto-verify and approve posts by admins and politicians
         if self.user.role in ['admin', 'politician'] and not self.pk:
             self.is_verified = True
+            self.status = 'approved'
+        # Auto-approve posts by ANY identity-verified user
+        elif self.user.identity_confirmed and not self.pk:
+            self.status = 'approved'
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -111,7 +116,7 @@ class Comment(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="comments")
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
     content = models.TextField(blank=True, null=True)
-    image = models.ImageField(upload_to='comments/', blank=True, null=True)
+    attachment = models.FileField(upload_to='comments/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

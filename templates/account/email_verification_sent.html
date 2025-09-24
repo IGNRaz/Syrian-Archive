@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Email Verification Sent - Syrian Archive{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="bi bi-envelope-check me-2"></i>
+                        Verify Your Email Address
+                    </h3>
+                </div>
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <div class="alert alert-success" role="alert">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <strong>Confirmation email sent to {{ email }}.</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="verification-info">
+                        <p class="lead text-center mb-4">
+                            We have sent an email to you for verification. Follow the link provided to finalize the signup process.
+                        </p>
+                        
+                        <div class="alert alert-info" role="alert">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-info-circle me-2"></i>
+                                Important Notes:
+                            </h6>
+                            <ul class="mb-0">
+                                <li>If you do not see the verification email in your main inbox, <strong>check your spam folder</strong>.</li>
+                                <li>The verification link will expire in 24 hours for security reasons.</li>
+                                <li>Please contact us if you do not receive the verification email within a few minutes.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{% url 'account_login' %}" class="btn btn-outline-primary me-3">
+                            <i class="bi bi-arrow-left me-2"></i>
+                            Back to Sign In
+                        </a>
+                        <a href="{% url 'account_email' %}" class="btn btn-primary">
+                            <i class="bi bi-envelope me-2"></i>
+                            Resend Email
+                        </a>
+                    </div>
+                </div>
+                <div class="card-footer text-center bg-light">
+                    <small class="text-muted">
+                        <i class="bi bi-shield-check me-1"></i>
+                        Your privacy and security are important to us
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.card-header {
+    border-bottom: none;
+}
+
+.verification-info {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    padding: 2rem;
+    margin: 1rem 0;
+}
+
+.btn {
+    border-radius: 25px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.alert {
+    border-radius: 10px;
+    border: none;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    color: #155724;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    color: #0c5460;
+}
+</style>
+{% endblock %}

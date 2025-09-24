@@ -85,8 +85,8 @@
             {% for post in posts %}
             <div class="col-lg-4 col-md-6 mb-4">
                 <div class="card h-100 shadow-sm">
-                    {% if post.image %}
-                        <img src="{{ post.image.url }}" class="card-img-top" 
+                    {% if post.attachment %}
+                        <img src="{{ post.attachment.url }}" class="card-img-top" 
                              style="height: 250px; object-fit: cover;" alt="Post image">
                     {% else %}
                         <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 

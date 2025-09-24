@@ -1,0 +1,460 @@
+{% extends "auth_payments/base.html" %}
+{% load static %}
+{% load socialaccount %}
+
+{% block title %}Social Account Connections - Syrian Archive{% endblock %}
+
+{% block auth_payments_content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="section-title mb-4">
+            <i class="fas fa-link"></i>
+            Social Account Connections
+        </h2>
+        <p class="text-muted mb-4">
+            Connect your social media accounts for easier sign-in and enhanced features.
+        </p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Connected Accounts -->
+        <div class="payment-card mb-4">
+            <h4 class="mb-3">
+                <i class="fas fa-check-circle text-success"></i>
+                Connected Accounts
+            </h4>
+            
+            {% get_social_accounts user as accounts %}
+            {% if accounts %}
+                {% for account in accounts %}
+                <div class="social-account-item">
+                    <div class="row align-items-center">
+                        <div class="col-md-2">
+                            <div class="social-provider-icon">
+                                {% if account.provider == 'google' %}
+                                    <i class="fab fa-google"></i>
+                                {% elif account.provider == 'facebook' %}
+                                    <i class="fab fa-facebook-f"></i>
+                                {% elif account.provider == 'github' %}
+                                    <i class="fab fa-github"></i>
+                                {% else %}
+                                    <i class="fas fa-user"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-1">{{ account.provider|title }}</h6>
+                            <p class="text-muted mb-0">
+                                {% if account.extra_data.name %}
+                                    {{ account.extra_data.name }}
+                                {% elif account.extra_data.login %}
+                                    {{ account.extra_data.login }}
+                                {% else %}
+                                    {{ account.uid }}
+                                {% endif %}
+                            </p>
+                            <small class="text-muted">
+                                Connected on {{ account.date_joined|date:"M d, Y" }}
+                            </small>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="badge bg-success">
+                                <i class="fas fa-check"></i>
+                                Connected
+                            </span>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <form method="post" action="{% url 'auth_payments:disconnect_social' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="account" value="{{ account.id }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                        onclick="return confirm('Are you sure you want to disconnect this account?')">
+                                    <i class="fas fa-unlink"></i>
+                                    Disconnect
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-unlink fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Connected Accounts</h5>
+                    <p class="text-muted">Connect your social media accounts below for easier access.</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Available Connections -->
+        <div class="payment-card">
+            <h4 class="mb-3">
+                <i class="fas fa-plus-circle"></i>
+                Available Connections
+            </h4>
+            
+            {% get_providers as socialaccount_providers %}
+            <div class="row">
+                {% for provider in socialaccount_providers %}
+                    {% if provider.id not in connected_provider_ids %}
+                    <div class="col-md-6 mb-3">
+                        <div class="social-connect-card">
+                            <div class="row align-items-center">
+                                <div class="col-3">
+                                    <div class="social-provider-icon large">
+                                        {% if provider.id == 'google' %}
+                                            <i class="fab fa-google"></i>
+                                        {% elif provider.id == 'facebook' %}
+                                            <i class="fab fa-facebook-f"></i>
+                                        {% elif provider.id == 'github' %}
+                                            <i class="fab fa-github"></i>
+                                        {% else %}
+                                            <i class="fas fa-user"></i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <h6 class="mb-1">{{ provider.name }}</h6>
+                                    <small class="text-muted">
+                                        {% if provider.id == 'google' %}
+                                            Connect with Google
+                                        {% elif provider.id == 'facebook' %}
+                                            Connect with Facebook
+                                        {% elif provider.id == 'github' %}
+                                            Connect with GitHub
+                                        {% else %}
+                                            Connect with {{ provider.name }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="col-3">
+                                    <a href="{% provider_login_url provider.id %}" 
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-link"></i>
+                                        Connect
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            
+            {% if not socialaccount_providers %}
+                <div class="text-center py-4">
+                    <i class="fas fa-cog fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Providers Available</h5>
+                    <p class="text-muted">Social authentication providers are not configured.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Benefits Card -->
+        <div class="payment-card mb-4">
+            <h5 class="mb-3">
+                <i class="fas fa-star"></i>
+                Connection Benefits
+            </h5>
+            <ul class="list-unstyled">
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    Faster sign-in process
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    No need to remember passwords
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    Enhanced security
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    Profile synchronization
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    Social features integration
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Security Information -->
+        <div class="payment-card mb-4">
+            <h5 class="mb-3">
+                <i class="fas fa-shield-alt"></i>
+                Security & Privacy
+            </h5>
+            <div class="security-info">
+                <div class="security-item">
+                    <i class="fas fa-lock text-success"></i>
+                    <div>
+                        <h6>Secure Connection</h6>
+                        <small class="text-muted">All connections use OAuth 2.0 secure protocol</small>
+                    </div>
+                </div>
+                <div class="security-item">
+                    <i class="fas fa-eye-slash text-info"></i>
+                    <div>
+                        <h6>Privacy Protected</h6>
+                        <small class="text-muted">We only access basic profile information</small>
+                    </div>
+                </div>
+                <div class="security-item">
+                    <i class="fas fa-user-shield text-primary"></i>
+                    <div>
+                        <h6>You Control Access</h6>
+                        <small class="text-muted">Disconnect anytime from your account settings</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="payment-card">
+            <h5 class="mb-3">
+                <i class="fas fa-bolt"></i>
+                Quick Actions
+            </h5>
+            <div class="d-grid gap-2">
+                <a href="{% url 'auth_payments:social_login' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Social Login Page
+                </a>
+                <a href="{% url 'account_email' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-envelope"></i>
+                    Manage Email Addresses
+                </a>
+                <a href="{% url 'account_change_password' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-key"></i>
+                    Change Password
+                </a>
+                <a href="#" class="btn btn-outline-info btn-sm" onclick="showConnectionHelp()">
+                    <i class="fas fa-question-circle"></i>
+                    Connection Help
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Connection Help Modal -->
+<div class="modal fade" id="connectionHelpModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-question-circle"></i>
+                    Social Connection Help
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="accordion" id="helpAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingOne">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                                How do I connect a social account?
+                            </button>
+                        </h2>
+                        <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#helpAccordion">
+                            <div class="accordion-body">
+                                <ol>
+                                    <li>Click the "Connect" button next to the social provider you want to use</li>
+                                    <li>You'll be redirected to the provider's login page</li>
+                                    <li>Sign in with your social account credentials</li>
+                                    <li>Authorize our application to access your basic profile information</li>
+                                    <li>You'll be redirected back and the account will be connected</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingTwo">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                                What information do we access?
+                            </button>
+                        </h2>
+                        <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                            <div class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    We only access basic profile information including:
+                                    <ul>
+                                        <li>Your name and profile picture</li>
+                                        <li>Your email address (if public)</li>
+                                        <li>Your unique user ID from the provider</li>
+                                    </ul>
+                                    We do not access your posts, friends list, or other private information.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingThree">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                                How do I disconnect an account?
+                            </button>
+                        </h2>
+                        <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                            <div class="accordion-body">
+                                <ol>
+                                    <li>Find the connected account in the "Connected Accounts" section above</li>
+                                    <li>Click the "Disconnect" button next to the account</li>
+                                    <li>Confirm the disconnection in the popup dialog</li>
+                                    <li>The account will be immediately disconnected</li>
+                                </ol>
+                                <div class="alert alert-warning mt-3">
+                                    <strong>Note:</strong> Make sure you have another way to sign in (email/password or another connected account) before disconnecting.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    function showConnectionHelp() {
+        new bootstrap.Modal(document.getElementById('connectionHelpModal')).show();
+    }
+    
+    // Handle connection success/error messages
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        if (urlParams.get('connected') === 'success') {
+            showAlert('Social account connected successfully!', 'success');
+        } else if (urlParams.get('connected') === 'error') {
+            showAlert('Error connecting social account. Please try again.', 'danger');
+        } else if (urlParams.get('disconnected') === 'success') {
+            showAlert('Social account disconnected successfully!', 'success');
+        }
+        
+        // Clean up URL parameters
+        if (urlParams.has('connected') || urlParams.has('disconnected')) {
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+        }
+    });
+</script>
+
+<style>
+.social-account-item {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.social-account-item:hover {
+    border-color: #007bff;
+    box-shadow: 0 2px 4px rgba(0,123,255,0.1);
+}
+
+.social-connect-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.social-connect-card:hover {
+    border-color: #007bff;
+    box-shadow: 0 2px 4px rgba(0,123,255,0.1);
+}
+
+.social-provider-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.social-provider-icon.large {
+    width: 60px;
+    height: 60px;
+    font-size: 1.8rem;
+}
+
+.social-provider-icon i.fa-google {
+    background: linear-gradient(135deg, #db4437, #4285f4);
+    border-radius: 50%;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.social-provider-icon i.fa-facebook-f {
+    background: #1877f2;
+    border-radius: 50%;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.social-provider-icon i.fa-github {
+    background: #333;
+    border-radius: 50%;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.social-provider-icon i.fa-user {
+    background: #6c757d;
+    border-radius: 50%;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.security-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.security-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.security-item i {
+    font-size: 1.2rem;
+    margin-top: 0.2rem;
+}
+
+.security-item h6 {
+    margin-bottom: 0.25rem;
+    color: #2c3e50;
+}
+</style>
+{% endblock %}

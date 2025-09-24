@@ -43,42 +43,43 @@
                             {% endif %}
                         </div>
                         
-                        <!-- Current Image Display -->
-                        {% if post.image %}
+                        <!-- Current Attachment Display -->
+                        {% if post.attachment %}
                         <div class="mb-3">
                             <label class="form-label">
-                                <i class="bi bi-image"></i> Current Image
+                                <i class="bi bi-paperclip"></i> Current Attachment
                             </label>
                             <div class="mb-2">
-                                <img src="{{ post.image.url }}" class="img-thumbnail" 
-                                     style="max-height: 200px; max-width: 300px;" alt="Current post image">
+                                <a href="{{ post.attachment.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                                    <i class="bi bi-download"></i> {{ post.attachment.name|default:"Download File" }}
+                                </a>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="remove_image" id="remove_image">
-                                <label class="form-check-label text-danger" for="remove_image">
-                                    <i class="bi bi-trash"></i> Remove current image
+                                <input class="form-check-input" type="checkbox" name="remove_attachment" id="remove_attachment">
+                                <label class="form-check-label text-danger" for="remove_attachment">
+                                    <i class="bi bi-trash"></i> Remove current attachment
                                 </label>
                             </div>
                         </div>
                         {% endif %}
                         
-                        <!-- New Image Field -->
+                        <!-- New Attachment Field -->
                         <div class="mb-3">
-                            <label for="{{ form.image.id_for_label }}" class="form-label">
-                                <i class="bi bi-image"></i> 
-                                {% if post.image %}Replace Image{% else %}Add Image{% endif %} (Optional)
+                            <label for="{{ form.attachment.id_for_label }}" class="form-label">
+                                <i class="bi bi-paperclip"></i> 
+                                {% if post.attachment %}Replace Attachment{% else %}Add Attachment{% endif %} (Optional)
                             </label>
-                            {{ form.image }}
-                            {% if form.image.errors %}
+                            {{ form.attachment }}
+                            {% if form.attachment.errors %}
                                 <div class="text-danger small mt-1">
-                                    {{ form.image.errors.0 }}
+                                    {{ form.attachment.errors.0 }}
                                 </div>
                             {% endif %}
                             <div class="form-text">
-                                {% if post.image %}
-                                    Upload a new image to replace the current one, or check the box above to remove it.
+                                {% if post.attachment %}
+                                    Upload a new file to replace the current one, or check the box above to remove it.
                                 {% else %}
-                                    Upload an image to support your post. Accepted formats: JPG, PNG, GIF (Max 5MB)
+                                    Upload files to support your post. Accepted formats: PDF, DOC, DOCX, JPG, PNG, GIF (Max 10MB)
                                 {% endif %}
                             </div>
                         </div>
@@ -189,7 +190,7 @@
                                 <li><i class="bi bi-check text-success"></i> Fixing typos and grammar</li>
                                 <li><i class="bi bi-check text-success"></i> Adding more context</li>
                                 <li><i class="bi bi-check text-success"></i> Improving formatting</li>
-                                <li><i class="bi bi-check text-success"></i> Adding relevant images</li>
+                                <li><i class="bi bi-check text-success"></i> Adding relevant attachments</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
