@@ -1,8 +1,9 @@
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import render
 from django.utils.deprecation import MiddlewareMixin
 from django.urls import resolve
 from django.utils import timezone
+from django.conf import settings
 from .models import IPBan
 from .logging_utils import file_logger
 
@@ -155,3 +156,26 @@ class SecurityMiddleware(MiddlewareMixin):
             print(f"SecurityMiddleware exception logging error: {e}")
         
         return None
+
+
+class HostNormalizeMiddleware:
+    """
+    In DEBUG, normalize 127.0.0.1 to localhost to avoid OAuth redirect_uri mismatches.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        try:
+            if getattr(settings, 'DEBUG', False):
+                host = request.get_host() or ''
+                if host.startswith('127.0.0.1'):
+                    parts = host.split(':', 1)
+                    port = f":{parts[1]}" if len(parts) == 2 else ''
+                    new_url = f"http://localhost{port}{request.get_full_path()}"
+                    return HttpResponseRedirect(new_url)
+        except Exception:
+            pass
+
+        return self.get_response(request)

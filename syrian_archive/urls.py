@@ -30,6 +30,8 @@ urlpatterns = [
     path('auth/', include('auth_payments.urls')),
     path('accounts/', include('allauth.urls')),  # Default allauth URLs
     path('api/', include('api.urls')),  # API endpoints
+    path('', include('the_syrian_investigator.urls')),
+    # Fact_Cheaker routes removed
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

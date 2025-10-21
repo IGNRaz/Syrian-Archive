@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Request Verification - Syrian Archive{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="text-primary mb-1">
+                        <i class="bi bi-patch-check"></i> Request Role Verification
+                    </h2>
+                    <p class="text-muted mb-0">Apply for journalist or politician verification</p>
+                </div>
+                <div>
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+
+            <!-- Information Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Verification Benefits
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">
+                                <i class="bi bi-newspaper"></i> Journalist Verification
+                            </h6>
+                            <ul class="list-unstyled mb-3">
+                                <li><i class="bi bi-check text-success me-2"></i>Verify posts and content</li>
+                                <li><i class="bi bi-check text-success me-2"></i>Access to journalist tools</li>
+                                <li><i class="bi bi-check text-success me-2"></i>Enhanced credibility badge</li>
+                                <li><i class="bi bi-check text-success me-2"></i>Priority content review</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">
+                                <i class="bi bi-building"></i> Politician Verification
+                            </h6>
+                            <ul class="list-unstyled mb-3">
+                                <li><i class="bi bi-check text-success me-2"></i>Verify posts and content</li>
+                                <li><i class="bi bi-check text-success me-2"></i>Official representative status</li>
+                                <li><i class="bi bi-check text-success me-2"></i>Enhanced credibility badge</li>
+                                <li><i class="bi bi-check text-success me-2"></i>Priority content review</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requirements Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> Verification Requirements
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Important:</strong> All verification requests are manually reviewed by our admin team. Please ensure you meet the requirements before submitting.
+                    </div>
+                    
+                    <div class="alert alert-info" role="alert">
+                        <i class="bi bi-file-earmark-person"></i> <strong>Required:</strong> You must upload your UID document before requesting verification. This helps us verify your identity.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-warning">
+                                <i class="bi bi-newspaper"></i> For Journalists
+                            </h6>
+                            <ul class="small">
+                                <li>Valid press credentials or media organization ID</li>
+                                <li>Published work or portfolio</li>
+                                <li>Professional media organization affiliation</li>
+                                <li>Verifiable contact information</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-warning">
+                                <i class="bi bi-building"></i> For Politicians
+                            </h6>
+                            <ul class="small">
+                                <li>Official government position or elected office</li>
+                                <li>Government-issued identification</li>
+                                <li>Official government email or contact</li>
+                                <li>Public records of political activity</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verification Request Form -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-earmark-text"></i> Verification Request Form
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Current User Info -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted">Current User</label>
+                                <div class="p-3 bg-light rounded">
+                                    <div class="d-flex align-items-center">
+                                        {% if user.profile_picture %}
+                                            <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}" class="rounded-circle me-3" width="50" height="50">
+                                        {% else %}
+                                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                                <i class="bi bi-person text-white"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div>
+                                            <h6 class="mb-1">{{ user.get_full_name|default:user.username }}</h6>
+                                            <small class="text-muted">{{ user.email }}</small>
+                                            <div>
+                                                <span class="badge bg-secondary">{{ user.get_role_display }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted">Account Status</label>
+                                <div class="p-3 bg-light rounded">
+                                    <div class="mb-2">
+                                        <i class="bi bi-calendar3 text-muted me-2"></i>
+                                        <small>Joined {{ user.date_joined|date:"M d, Y" }}</small>
+                                    </div>
+                                    <div class="mb-2">
+                                        {% if user.profile.is_identity_verified %}
+                                            <i class="bi bi-check-circle text-success me-2"></i>
+                                            <small class="text-success">Identity Verified</small>
+                                        {% else %}
+                                            <i class="bi bi-x-circle text-warning me-2"></i>
+                                            <small class="text-warning">Identity Not Verified</small>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <i class="bi bi-file-earmark-text text-muted me-2"></i>
+                                        <small>{{ user.posts.count }} posts</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Requested Role -->
+                        <div class="mb-4">
+                            <label for="{{ form.requested_role.id_for_label }}" class="form-label">
+                                <i class="bi bi-person-badge"></i> Requested Role *
+                            </label>
+                            {{ form.requested_role }}
+                            {% if form.requested_role.help_text %}
+                                <div class="form-text">{{ form.requested_role.help_text }}</div>
+                            {% endif %}
+                            {% if form.requested_role.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.requested_role.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Additional Information -->
+                        <div class="mb-4">
+                            <h6 class="text-muted mb-3">Additional Information</h6>
+                            <div class="alert alert-light" role="alert">
+                                <i class="bi bi-lightbulb"></i>
+                                <strong>Tip:</strong> After submitting this request, our admin team will review your application. You may be contacted for additional verification documents or information. The review process typically takes 3-5 business days.
+                            </div>
+                        </div>
+
+                        <!-- Terms and Conditions -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="terms" required>
+                                <label class="form-check-label" for="terms">
+                                    I agree to the <a href="#" class="text-primary">Terms of Service</a> and <a href="#" class="text-primary">Verification Guidelines</a> *
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="accuracy" required>
+                                <label class="form-check-label" for="accuracy">
+                                    I certify that all information provided is accurate and truthful *
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary me-md-2">
+                                <i class="bi bi-x-lg"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send"></i> Submit Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Help Section -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-question-circle"></i> Need Help?
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">If you have questions about the verification process, please contact our support team:</p>
+                    <ul class="list-unstyled mb-0">
+                        <li><i class="bi bi-envelope text-muted me-2"></i>Email: verification@syrianarchive.org</li>
+                        <li><i class="bi bi-telephone text-muted me-2"></i>Phone: +1 (555) 123-4567</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

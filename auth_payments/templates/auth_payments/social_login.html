@@ -1,5 +1,6 @@
 {% extends "auth_payments/base.html" %}
 {% load static %}
+{% load socialaccount %}
 
 {% block title %}Social Login - Syrian Archive{% endblock %}
 
@@ -18,21 +19,21 @@
             
             <div class="social-login-options">
                 {% if google_enabled %}
-                <a href="{% url 'socialaccount_login' 'google' %}" class="social-login-btn google-btn">
+                <a href="{% provider_login_url 'google' %}" class="social-login-btn google-btn">
                     <i class="fab fa-google"></i>
                     Continue with Google
                 </a>
                 {% endif %}
                 
                 {% if facebook_enabled %}
-                <a href="{% url 'socialaccount_login' 'facebook' %}" class="social-login-btn facebook-btn">
+                <a href="{% provider_login_url 'facebook' %}" class="social-login-btn facebook-btn">
                     <i class="fab fa-facebook-f"></i>
                     Continue with Facebook
                 </a>
                 {% endif %}
                 
                 {% if github_enabled %}
-                <a href="{% url 'socialaccount_login' 'github' %}" class="social-login-btn github-btn">
+                <a href="{% provider_login_url 'github' %}" class="social-login-btn github-btn">
                     <i class="fab fa-github"></i>
                     Continue with GitHub
                 </a>

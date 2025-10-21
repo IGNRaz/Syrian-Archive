@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Upload UID Document - Syrian Archive{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">
+                        <i class="bi bi-file-earmark-person"></i> Upload UID Document
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Complete Your Registration</strong><br>
+                        Upload a document and optionally enter your full name and a preferred role to display on your profile. Document uploads help us verify your identity and maintain platform security.
+                    </div>
+                    
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="uid_document" class="form-label">
+                                <i class="bi bi-file-earmark-arrow-up"></i> UID Document (optional)
+                            </label>
+                            <input type="file" class="form-control" id="uid_document" name="uid_document" 
+                                   accept=".pdf,.jpg,.jpeg,.png">
+                            <div class="form-text">
+                                Accepted formats: PDF, JPG, JPEG, PNG (Max size: 5MB)
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="first_name" class="form-label">
+                                    <i class="bi bi-person"></i> First Name (optional)
+                                </label>
+                                <input type="text" class="form-control" id="first_name" name="first_name" placeholder="First name" value="{{ request.user.first_name }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="last_name" class="form-label">
+                                    <i class="bi bi-person"></i> Last Name (optional)
+                                </label>
+                                <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Last name" value="{{ request.user.last_name }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="intended_role" class="form-label">
+                                <i class="bi bi-shield-check"></i> Preferred Role (optional)
+                            </label>
+                            <select class="form-select" id="intended_role" name="intended_role">
+                                <option value="">Select preferred role</option>
+                                <option value="journalist" {% if request.user.intended_role == 'journalist' %}selected{% endif %}>Journalist</option>
+                                <option value="politician" {% if request.user.intended_role == 'politician' %}selected{% endif %}>Politician</option>
+                            </select>
+                            <div class="form-text">This helps show your intended role on your profile. Admins may later verify it.</div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="bi bi-shield-exclamation"></i>
+                            <strong>Privacy Notice:</strong> Your UID document will be securely stored and only viewed by authorized administrators for verification purposes.
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-upload"></i> Save
+                            </button>
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Skip for Now
+                            </a>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-muted text-center">
+                    <small>
+                        <i class="bi bi-lock"></i> Your information is protected and encrypted
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    border-radius: 15px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #0d6efd, #0b5ed7);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(45deg, #0b5ed7, #0a58ca);
+    transform: translateY(-1px);
+}
+
+.alert {
+    border-radius: 10px;
+}
+</style>
+{% endblock %}

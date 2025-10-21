@@ -26,7 +26,15 @@ SECRET_KEY = 'django-insecure-0id40p1-)x949*k%n=!eo^57$9%5-rrezsusti=3lah4_+0k1c
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+]
+
+# Ensure logs directory exists early for FileHandlers
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+if not os.path.exists(LOGS_DIR):
+    os.makedirs(LOGS_DIR)
 
 
 # Application definition
@@ -53,7 +61,8 @@ INSTALLED_APPS = [
     'auth_payments',
     'api',
     'rest_framework',
-
+    'the_syrian_investigator',
+    
 ]
 
 
@@ -66,6 +75,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
+    'archive_app.middleware.HostNormalizeMiddleware',
     'archive_app.middleware.IPBanMiddleware',
     'archive_app.middleware.SecurityMiddleware',
 ]
@@ -230,6 +240,9 @@ LOGS_DIR = os.path.join(BASE_DIR, 'logs')
 if not os.path.exists(LOGS_DIR):
     os.makedirs(LOGS_DIR)
 
+# Create logs directory if it doesn't exist
+# LOGS_DIR already ensured above
+
 # Django Allauth Configuration
 SITE_ID = 1
 
@@ -244,10 +257,13 @@ ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # Only for regular signups
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_USERNAME_REQUIRED = False
 SOCIALACCOUNT_QUERY_EMAIL = True
-SOCIALACCOUNT_LOGIN_ON_GET = False
+SOCIALACCOUNT_LOGIN_ON_GET = True
 SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Skip email verification for social logins
 SOCIALACCOUNT_AUTO_SIGNUP = True  # Auto-create accounts for social logins
 SOCIALACCOUNT_EMAIL_REQUIRED = False  # Don't require email verification for social accounts
+
+# Ensure allauth uses http in local development so redirect_uri matches
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'
 SOCIALACCOUNT_CONNECT_ON_GET = True  # Auto-connect social accounts to existing users
 
 # Social account providers
@@ -259,6 +275,7 @@ SOCIALACCOUNT_PROVIDERS = {
         ],
         'AUTH_PARAMS': {
             'access_type': 'online',
+            'prompt': 'consent select_account',
         }
     },
     'microsoft': {
@@ -293,3 +310,6 @@ SOCIALACCOUNT_PROVIDERS = {
 STRIPE_PUBLISHABLE_KEY = 'pk_test_your_publishable_key_here'
 STRIPE_SECRET_KEY = 'sk_test_your_secret_key_here'
 STRIPE_WEBHOOK_SECRET = 'whsec_your_webhook_secret_here'
+
+# Use custom allauth adapter to log password reset links
+ACCOUNT_ADAPTER = 'syrian_archive.adapters.CustomAccountAdapter'

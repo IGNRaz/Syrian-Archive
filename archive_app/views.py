@@ -373,41 +373,67 @@ def register(request):
 @login_required
 def upload_uid_document(request):
     """Upload UID document after registration - completely optional"""
+    # Block access for identity-verified users
+    if request.user.identity_confirmed:
+        messages.info(request, 'Your identity is already verified. UID upload is disabled.')
+        return redirect('profile_view')
+
     if request.user.uid_document:
         messages.info(request, 'You have already uploaded your UID document.')
         return redirect('dashboard')
     
     if request.method == 'POST':
         uid_document = request.FILES.get('uid_document')
-        intended_role = request.POST.get('intended_role', '').strip()  # Clean whitespace
-        
-        # Handle all combinations: document + role, document only, role only, or neither
+        intended_role = request.POST.get('intended_role', '').strip()
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+
         has_document = bool(uid_document)
         has_role = bool(intended_role)
-        
-        if has_document or has_role:
-            # Update user data only if there's something to save
+        has_name = bool(first_name or last_name)
+
+        if has_document or has_role or has_name:
             if has_document:
                 request.user.uid_document = uid_document
             if has_role:
                 request.user.intended_role = intended_role
             elif has_document:
-                # Clear role if document uploaded but no role selected
                 request.user.intended_role = ''
-            
+            if first_name:
+                request.user.first_name = first_name
+            if last_name:
+                request.user.last_name = last_name
+
             request.user.save()
-            
-            # Log the action
-            if has_document and has_role:
+
+            if has_document and has_role and has_name:
+                log_message = (
+                    f"User {request.user.username} uploaded UID document, set preferred role: {intended_role}, "
+                    f"and updated full name"
+                )
+                success_message = (
+                    f"Document uploaded, name saved, and preferred role ({intended_role}) recorded! "
+                    f"An admin may review for verification."
+                )
+            elif has_document and has_role:
                 log_message = f"User {request.user.username} uploaded UID document with intended role: {intended_role}"
-                success_message = f'Document uploaded and role ({intended_role}) saved successfully! An admin will review for verification.'
+                success_message = f"Document uploaded and role ({intended_role}) saved successfully! An admin will review for verification."
+            elif has_document and has_name:
+                log_message = f"User {request.user.username} uploaded UID document and updated full name"
+                success_message = "Document uploaded and name saved successfully! Your identity will be verified by an admin."
             elif has_document:
                 log_message = f"User {request.user.username} uploaded UID document for identity verification only"
-                success_message = 'Document uploaded successfully! Your identity will be verified by an admin.'
-            else:  # has_role only
+                success_message = "Document uploaded successfully! Your identity will be verified by an admin."
+            elif has_role and has_name:
+                log_message = f"User {request.user.username} saved role preference {intended_role} and updated full name"
+                success_message = f"Role preference ({intended_role}) and name saved successfully! You can upload your document anytime."
+            elif has_role:
                 log_message = f"User {request.user.username} saved role preference: {intended_role}"
-                success_message = f'Role preference ({intended_role}) saved successfully! You can upload your document anytime.'
-            
+                success_message = f"Role preference ({intended_role}) saved successfully! You can upload your document anytime."
+            else:  # has_name only
+                log_message = f"User {request.user.username} updated full name"
+                success_message = "Name saved successfully! You can upload a document or select a role anytime from your profile."
+
             file_logger.log_user_action(
                 user=request.user,
                 ip_address=get_client_ip(request),
@@ -417,15 +443,16 @@ def upload_uid_document(request):
                     'username': request.user.username,
                     'intended_role': intended_role or 'none',
                     'has_uid_document': has_document,
+                    'first_name_set': bool(first_name),
+                    'last_name_set': bool(last_name),
                     'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown')
                 }
             )
-            
+
             messages.success(request, success_message)
         else:
-            # Neither document nor role provided - completely valid
             messages.info(request, 'Form submitted successfully! You can upload a document or select a role anytime from your profile.')
-        
+
         return redirect('dashboard')
     
     return render(request, 'registration/upload_uid.html')
@@ -922,12 +949,38 @@ def person_delete(request, pk):
 
 @login_required
 def event_list(request):
-    """List all approved events"""
-    events = Event.objects.filter(status='approved').order_by('-date')
+    """List all events with filtering"""
+    events = Event.objects.all()
+    
+    # Filter by status if provided
+    status_filter = request.GET.get('status')
+    if status_filter:
+        events = events.filter(status=status_filter)
+    
+    # Order by date
+    events = events.order_by('-date')
+    
+    # Statistics for the cards
+    total_events = Event.objects.count()
+    approved_events = Event.objects.filter(status='approved').count()
+    pending_events = Event.objects.filter(status='pending').count()
+    from django.utils import timezone
+    current_month = timezone.now().replace(day=1)
+    recent_events = Event.objects.filter(date__gte=current_month).count()
+    
+    # Pagination
     paginator = Paginator(events, 10)
     page_number = request.GET.get('page')
     events = paginator.get_page(page_number)
-    return render(request, 'events/event_list.html', {'events': events})
+    
+    context = {
+        'events': events,
+        'total_events': total_events,
+        'approved_events': approved_events,
+        'pending_events': pending_events,
+        'recent_events': recent_events,
+    }
+    return render(request, 'events/event_list.html', context)
 
 @login_required
 def event_create(request):
@@ -1130,11 +1183,21 @@ def admin_dashboard(request):
     }
     
     recent_activities = AuditLog.objects.select_related('admin', 'target_user').order_by('-created_at')[:10]
+    # Recent security logs for dashboard widget
+    try:
+        recent_security_logs = file_logger.get_recent_logs('security', lines=8)
+    except Exception:
+        recent_security_logs = []
+    
+    # Fetch all events for dashboard display
+    events = Event.objects.select_related('created_by').prefetch_related('participants', 'journalists').order_by('-date')
     
     context = {
         'stats': stats,
         'recent_activities': recent_activities,
         'current_time': timezone.now(),
+        'recent_security_logs': recent_security_logs,
+        'events': events,
     }
     return render(request, 'admin/admin_dashboard.html', context)
 
@@ -1636,7 +1699,7 @@ def admin_people(request):
     people = Person.objects.select_related('added_by').order_by('-created_at')
     
     # Filter by status
-    status_filter = request.GET.get('status')
+    status_filter = request.GET.get('status', 'pending')
     if status_filter:
         people = people.filter(status=status_filter)
     
@@ -1759,7 +1822,7 @@ def admin_events(request):
     events = Event.objects.select_related('created_by').order_by('-date')
     
     # Filter by status
-    status_filter = request.GET.get('status')
+    status_filter = request.GET.get('status', 'pending')
     if status_filter:
         events = events.filter(status=status_filter)
     
@@ -1923,7 +1986,9 @@ def admin_logs(request):
         ('admin_actions', 'Admin Actions (User Management, System Changes)'),
         ('post_actions', 'Post Actions (Creation, Verification, Moderation)'),
         ('security', 'Security Events (Failed Logins, Suspicious Activities)'),
-        ('system', 'Server Logs (System Events, Errors, Performance)')
+        ('system', 'System Logs (Application Events, Errors)'),
+        ('server', 'Server Events (Startup, Shutdown, Infrastructure)'),
+        ('password_reset_links', 'Password Reset Links (Generated links audit)')
     ]
     
     logs = []
@@ -1957,7 +2022,8 @@ def admin_logs_download(request):
     import os
     
     log_type = request.GET.get('type', 'authentication')
-    log_filename = file_logger.get_log_filename(log_type)
+    # Prefer constant file if non-empty; fallback to latest legacy file
+    log_filename = file_logger.get_download_path(log_type)
     
     if not os.path.exists(log_filename):
         messages.error(request, f'Log file for {log_type} does not exist.')

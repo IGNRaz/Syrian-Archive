@@ -1,0 +1,488 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ post.title }} - Syrian Archive{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <!-- Main Post Content -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <!-- Post Header -->
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="d-flex align-items-center">
+                            {% if post.user.profile.profile_picture %}
+                                <img src="{{ post.user.profile.profile_picture.url }}" 
+                                     class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;" 
+                                     alt="Author profile">
+                            {% else %}
+                                <div class="bg-light rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                                     style="width: 50px; height: 50px;">
+                                    <i class="bi bi-person text-muted"></i>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <h6 class="mb-0">
+                                    <a href="{% url 'profile_view_user' post.user.username %}" 
+                                       class="text-decoration-none">{{ post.user.get_full_name|default:post.user.username }}</a>
+                                    {% if post.user.profile.role != 'normal' %}
+                                        <span class="badge bg-primary ms-1">{{ post.user.profile.get_role_display }}</span>
+                                    {% endif %}
+                                    {% if post.user.profile.identity_confirmed %}
+                                        <i class="bi bi-patch-check-fill text-success ms-1" title="Identity Confirmed"></i>
+                                    {% endif %}
+                                </h6>
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar"></i> {{ post.created_at|date:"F d, Y \a\t g:i A" }}
+                                    {% if post.updated_at != post.created_at %}
+                                        <span class="ms-2">
+                                            <i class="bi bi-pencil"></i> Updated {{ post.updated_at|timesince }} ago
+                                        </span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Post Actions -->
+                        {% if user.is_authenticated %}
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" 
+                                        type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    {% if user == post.user %}
+                                        <li><a class="dropdown-item" href="{% url 'post_edit' post.pk %}">
+                                            <i class="bi bi-pencil"></i> Edit Post
+                                        </a></li>
+                                        <li><a class="dropdown-item text-danger" href="{% url 'post_delete' post.pk %}">
+                                            <i class="bi bi-trash"></i> Delete Post
+                                        </a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    {% endif %}
+                                    <li><a class="dropdown-item" href="{% url 'report_post' post.pk %}">
+                                        <i class="bi bi-flag"></i> Report Post
+                                    </a></li>
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Post Body -->
+                <div class="card-body">
+                    <h2 class="card-title mb-3">{{ post.title }}</h2>
+                    
+                    <!-- Status Badge -->
+                    <div class="mb-3">
+                        {% if post.status == 'approved' %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle"></i> Approved
+                            </span>
+                        {% elif post.status == 'pending' %}
+                            <span class="badge bg-warning">
+                                <i class="bi bi-clock"></i> Pending Review
+                            </span>
+                        {% elif post.status == 'rejected' %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-x-circle"></i> Rejected
+                            </span>
+                        {% endif %}
+                        
+                        {% if post.event %}
+                            <span class="badge bg-info ms-1">
+                                <i class="bi bi-calendar-event"></i> 
+                                <a href="{% url 'event_detail' post.event.pk %}" class="text-white text-decoration-none">
+                                    {{ post.event.title }}
+                                </a>
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    {% if post.attachment %}
+                        <div class="mb-4">
+                            {% include 'includes/post_media.html' with post=post variant='block' class='img-fluid rounded' style='max-height: 500px; width: 100%; object-fit: cover;' alt=post.title %}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Post Content -->
+                    <div class="mb-4">
+                        <p class="card-text" style="white-space: pre-wrap; line-height: 1.6;">{{ post.content }}</p>
+                    </div>
+                    
+                    <!-- Post Stats -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex gap-4">
+                            <span class="text-muted">
+                                <i class="bi bi-heart"></i> <span id="like-count">{{ post.likes.count }}</span> likes
+                            </span>
+                            <span class="text-muted">
+                                <i class="bi bi-chat"></i> {{ post.comments.count }} comments
+                            </span>
+                            {% if post.is_verified %}
+                                <span class="text-success">
+                                    <i class="bi bi-patch-check-fill"></i> <strong>Verified</strong> ({{ post.trusts.count }} trust{{ post.trusts.count|pluralize }})
+                                </span>
+                            {% elif post.trusts.count > 0 %}
+                                <span class="text-info">
+                                    <i class="bi bi-patch-check"></i> {{ post.trusts.count }} trust{{ post.trusts.count|pluralize }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        {% if post.report_count > 0 %}
+                            <span class="text-warning">
+                                <i class="bi bi-flag"></i> {{ post.report_count }} reports
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Investigate Button: visible to all users -->
+                    <div class="d-flex gap-2 mb-3">
+                        <a href="{% url 'investigator_home' %}?post_id={{ post.pk }}&q={{ post.title|urlencode }}" class="btn btn-outline-info btn-sm" title="Investigate this post">
+                            <i class="bi bi-search"></i> Investigate
+                        </a>
+                        <a href="{% url 'investigator_home' %}?mode=quick&post_id={{ post.pk }}&q={{ post.title|urlencode }}" class="btn btn-info btn-sm" title="Quick check without asking">
+                            <i class="bi bi-lightning"></i> Quick Check
+                        </a>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    {% if user.is_authenticated %}
+                        <div class="d-flex gap-2">
+                            <!-- Like Button -->
+                            <button id="like-btn" class="btn btn-outline-danger btn-sm" data-post-id="{{ post.pk }}" data-liked="{{ user_liked|yesno:'true,false' }}">
+                                <i class="bi bi-heart{% if user_liked %}-fill{% endif %}" id="like-icon"></i> 
+                                <span id="like-text">{% if user_liked %}Unlike{% else %}Like{% endif %}</span>
+                            </button>
+                            
+                            <!-- Trust Button (for politicians, journalists, and admins) -->
+                            {% if user.role in 'admin,politician,journalist' and post.status == 'approved' %}
+                                <button id="trust-btn" class="btn btn-outline-success btn-sm" data-post-id="{{ post.pk }}" data-trusted="{{ user_trusted|yesno:'true,false' }}">
+                                    <i class="bi bi-patch-check{% if user_trusted %}-fill{% endif %}" id="trust-icon"></i> 
+                                    <span id="trust-text">{% if user_trusted %}Untrust{% else %}Trust{% endif %}</span>
+                                </button>
+                            {% endif %}
+                            
+                            <!-- Report Button -->
+                            <a href="{% url 'report_post' post.pk %}" class="btn btn-outline-warning btn-sm">
+                                <i class="bi bi-flag"></i> Report
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+
+            <!-- Verifications Section -->
+            {% if post.postverification_set.all %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-patch-check"></i> Verifications ({{ post.postverification_set.count }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for verification in post.postverification_set.all %}
+                        <div class="d-flex align-items-center mb-2 {% if not forloop.last %}border-bottom pb-2{% endif %}">
+                            {% if verification.verifier.profile.profile_picture %}
+                                <img src="{{ verification.verifier.profile.profile_picture.url }}" 
+                                     class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;" 
+                                     alt="Verifier profile">
+                            {% else %}
+                                <div class="bg-light rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                                     style="width: 40px; height: 40px;">
+                                    <i class="bi bi-person text-muted"></i>
+                                </div>
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                <strong>{{ verification.verifier.get_full_name|default:verification.verifier.username }}</strong>
+                                <span class="badge bg-primary ms-1">{{ verification.verifier.profile.get_role_display }}</span>
+                                <br>
+                                <small class="text-muted">
+                                    Verified {{ verification.created_at|timesince }} ago
+                                    {% if verification.notes %}
+                                        - {{ verification.notes }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Comments Section -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat"></i> Comments ({{ comments.count }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Add Comment Form -->
+                    {% if user.is_authenticated %}
+                        <form method="post" enctype="multipart/form-data" class="mb-4">
+                            {% csrf_token %}
+                            <div class="d-flex">
+                                {% if user.profile.profile_picture %}
+                                    <img src="{{ user.profile.profile_picture.url }}" 
+                                         class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;" 
+                                         alt="Your profile">
+                                {% else %}
+                                    <div class="bg-light rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                                         style="width: 40px; height: 40px;">
+                                        <i class="bi bi-person text-muted"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="flex-grow-1">
+                                    <textarea name="content" class="form-control mb-2" rows="3" 
+                                              placeholder="Write a comment..." required></textarea>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <input type="file" name="image" class="form-control" style="max-width: 200px;" accept="image/*">
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            <i class="bi bi-send"></i> Comment
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    {% endif %}
+                    
+                    <!-- Comments List -->
+                    {% if comments %}
+                        {% for comment in comments %}
+                            <div class="d-flex mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                                {% if comment.user.profile.profile_picture %}
+                                    <img src="{{ comment.user.profile.profile_picture.url }}" 
+                                         class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;" 
+                                         alt="Commenter profile">
+                                {% else %}
+                                    <div class="bg-light rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                                         style="width: 40px; height: 40px;">
+                                        <i class="bi bi-person text-muted"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="flex-grow-1">
+                                    <div class="bg-light rounded p-3">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <strong>{{ comment.user.get_full_name|default:comment.user.username }}</strong>
+                                            <small class="text-muted">{{ comment.created_at|timesince }} ago</small>
+                                        </div>
+                                        <p class="mb-2">{{ comment.content }}</p>
+                                        {% if comment.image %}
+                                            <img src="{{ comment.image.url }}" class="img-fluid rounded mt-2" 
+                                                 style="max-height: 200px;" alt="Comment image">
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-chat text-muted" style="font-size: 3rem;"></i>
+                            <p class="text-muted mt-2">No comments yet. Be the first to comment!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Related Event -->
+            {% if post.event %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-calendar-event"></i> Related Event
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <h6><a href="{% url 'event_detail' post.event.pk %}" class="text-decoration-none">{{ post.event.title }}</a></h6>
+                    <p class="text-muted small mb-2">{{ post.event.description|truncatechars:100 }}</p>
+                    <small class="text-muted">
+                        <i class="bi bi-calendar"></i> {{ post.event.date|date:"M d, Y" }}
+                    </small>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Author Info -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-person"></i> About the Author
+                    </h6>
+                </div>
+                <div class="card-body text-center">
+                    {% if post.user.profile.profile_picture %}
+                        <img src="{{ post.user.profile.profile_picture.url }}" 
+                             class="rounded-circle mb-3" style="width: 80px; height: 80px; object-fit: cover;" 
+                             alt="Author profile">
+                    {% else %}
+                        <div class="bg-light rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" 
+                             style="width: 80px; height: 80px;">
+                            <i class="bi bi-person text-muted" style="font-size: 2rem;"></i>
+                        </div>
+                    {% endif %}
+                    <h6>{{ post.user.get_full_name|default:post.user.username }}</h6>
+                    {% if post.user.profile.role != 'normal' %}
+                        <span class="badge bg-primary mb-2">{{ post.user.profile.get_role_display }}</span>
+                    {% endif %}
+                    {% if post.user.profile.identity_confirmed %}
+                        <div class="mb-2">
+                            <span class="badge bg-success">
+                                <i class="bi bi-patch-check"></i> Identity Confirmed
+                            </span>
+                        </div>
+                    {% endif %}
+                    {% if post.user.profile.bio %}
+                        <p class="text-muted small">{{ post.user.profile.bio|truncatechars:100 }}</p>
+                    {% endif %}
+                    <a href="{% url 'profile_view_user' post.user.username %}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-person"></i> View Profile
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Recent Posts by Author -->
+            {% if author_recent_posts %}
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-file-text"></i> More from {{ post.user.username }}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% for recent_post in author_recent_posts %}
+                        <div class="mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                            <h6 class="mb-1">
+                                <a href="{% url 'post_detail' recent_post.pk %}" class="text-decoration-none">
+                                    {{ recent_post.title|truncatechars:40 }}
+                                </a>
+                            </h6>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar"></i> {{ recent_post.created_at|date:"M d" }}
+                                <span class="ms-2">
+                                    <i class="bi bi-heart"></i> {{ recent_post.like_set.count }}
+                                </span>
+                            </small>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const likeBtn = document.getElementById('like-btn');
+    const likeIcon = document.getElementById('like-icon');
+    const likeText = document.getElementById('like-text');
+    const likeCount = document.getElementById('like-count');
+    
+    const trustBtn = document.getElementById('trust-btn');
+    const trustIcon = document.getElementById('trust-icon');
+    const trustText = document.getElementById('trust-text');
+    
+    // Get CSRF token
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+               document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    }
+    
+    // Like button functionality
+    if (likeBtn) {
+        likeBtn.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const isLiked = this.dataset.liked === 'true';
+            
+            fetch(`/posts/${postId}/like/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Update button state
+                this.dataset.liked = data.liked.toString();
+                
+                // Update icon and text
+                if (data.liked) {
+                    likeIcon.className = 'bi bi-heart-fill';
+                    likeText.textContent = 'Unlike';
+                } else {
+                    likeIcon.className = 'bi bi-heart';
+                    likeText.textContent = 'Like';
+                }
+                
+                // Update like count
+                likeCount.textContent = data.like_count;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to update like. Please try again.');
+            });
+        });
+    }
+    
+    // Trust button functionality
+    if (trustBtn) {
+        trustBtn.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const isTrusted = this.dataset.trusted === 'true';
+            
+            fetch(`/posts/${postId}/trust/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.status === 403) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'You do not have permission to verify posts');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update button state
+                this.dataset.trusted = data.trusted.toString();
+                
+                // Update icon and text
+                if (data.trusted) {
+                    trustIcon.className = 'bi bi-patch-check-fill';
+                    trustText.textContent = 'Untrust';
+                } else {
+                    trustIcon.className = 'bi bi-patch-check';
+                    trustText.textContent = 'Trust';
+                }
+                
+                // Show verification status if post becomes verified
+                if (data.is_verified) {
+                    // You can add visual feedback here if needed
+                    console.log('Post is now verified');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message || 'Failed to update trust. Please try again.');
+            });
+        });
+    }
+});
+</script>
+
+{% endblock %}

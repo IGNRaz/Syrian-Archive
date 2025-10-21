@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Post - {{ post.title }} - Syrian Archive{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="bi bi-pencil-square"></i> Edit Post
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Title Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">
+                                <i class="bi bi-type"></i> Title *
+                            </label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.title.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Content Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.content.id_for_label }}" class="form-label">
+                                <i class="bi bi-file-text"></i> Content *
+                            </label>
+                            {{ form.content }}
+                            {% if form.content.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.content.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Current Image Display -->
+                        {% if post.image %}
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-image"></i> Current Image
+                            </label>
+                            <div class="mb-2">
+                                <img src="{{ post.image.url }}" class="img-thumbnail" 
+                                     style="max-height: 200px; max-width: 300px;" alt="Current post image">
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="remove_image" id="remove_image">
+                                <label class="form-check-label text-danger" for="remove_image">
+                                    <i class="bi bi-trash"></i> Remove current image
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- New Image Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.image.id_for_label }}" class="form-label">
+                                <i class="bi bi-image"></i> 
+                                {% if post.image %}Replace Image{% else %}Add Image{% endif %} (Optional)
+                            </label>
+                            {{ form.image }}
+                            {% if form.image.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.image.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                {% if post.image %}
+                                    Upload a new image to replace the current one, or check the box above to remove it.
+                                {% else %}
+                                    Upload an image to support your post. Accepted formats: JPG, PNG, GIF (Max 5MB)
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Event Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.event.id_for_label }}" class="form-label">
+                                <i class="bi bi-calendar-event"></i> Related Event (Optional)
+                            </label>
+                            {{ form.event }}
+                            {% if form.event.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.event.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Link this post to a specific event if relevant.
+                            </div>
+                        </div>
+                        
+                        <!-- Post Status Info -->
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-info-circle"></i> Post Status Information
+                            </h6>
+                            <p class="mb-2">
+                                <strong>Current Status:</strong> 
+                                {% if post.status == 'approved' %}
+                                    <span class="badge bg-success">Approved</span>
+                                {% elif post.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending Review</span>
+                                {% elif post.status == 'rejected' %}
+                                    <span class="badge bg-danger">Rejected</span>
+                                {% endif %}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Created:</strong> {{ post.created_at|date:"F d, Y \a\t g:i A" }}
+                            </p>
+                            {% if post.updated_at != post.created_at %}
+                                <p class="mb-2">
+                                    <strong>Last Updated:</strong> {{ post.updated_at|date:"F d, Y \a\t g:i A" }}
+                                </p>
+                            {% endif %}
+                            <p class="mb-0 small">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <strong>Note:</strong> Editing this post may require re-approval depending on the changes made.
+                            </p>
+                        </div>
+                        
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'post_detail' post.pk %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <div>
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="bi bi-check-circle"></i> Update Post
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Edit History Card -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-clock-history"></i> Edit History
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Post Created</h6>
+                                <p class="text-muted mb-0">{{ post.created_at|date:"F d, Y \a\t g:i A" }}</p>
+                            </div>
+                        </div>
+                        {% if post.updated_at != post.created_at %}
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-warning"></div>
+                                <div class="timeline-content">
+                                    <h6 class="mb-1">Last Updated</h6>
+                                    <p class="text-muted mb-0">{{ post.updated_at|date:"F d, Y \a\t g:i A" }}</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Guidelines Card -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Editing Guidelines
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success">
+                                <i class="bi bi-check-circle"></i> Safe Edits:
+                            </h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="bi bi-check text-success"></i> Fixing typos and grammar</li>
+                                <li><i class="bi bi-check text-success"></i> Adding more context</li>
+                                <li><i class="bi bi-check text-success"></i> Improving formatting</li>
+                                <li><i class="bi bi-check text-success"></i> Adding relevant images</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-warning">
+                                <i class="bi bi-exclamation-triangle"></i> May Require Re-approval:
+                            </h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="bi bi-exclamation text-warning"></i> Changing main content</li>
+                                <li><i class="bi bi-exclamation text-warning"></i> Modifying title significantly</li>
+                                <li><i class="bi bi-exclamation text-warning"></i> Changing linked event</li>
+                                <li><i class="bi bi-exclamation text-warning"></i> Adding controversial content</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.form-text {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.btn {
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.card {
+    border-radius: 12px;
+    border: none;
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+    border-bottom: none;
+    padding: 20px;
+}
+
+.card-body {
+    padding: 30px;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -22px;
+    top: 20px;
+    width: 2px;
+    height: calc(100% + 10px);
+    background-color: #dee2e6;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -26px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #dee2e6;
+}
+
+.timeline-content h6 {
+    color: #495057;
+    font-weight: 600;
+}
+
+.img-thumbnail {
+    border-radius: 8px;
+}
+
+.alert {
+    border-radius: 8px;
+    border: none;
+}
+</style>
+{% endblock %}

@@ -150,7 +150,7 @@ class PostForm(forms.ModelForm):
             }),
             'attachment': forms.FileInput(attrs={
                 'class': 'form-control',
-                'accept': '.jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp'
+                'accept': '.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.avi,.webm,.mkv,.mpeg,.mpg,.3gp,.ogg,.ogv,.wav,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,image/*,video/*,audio/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/zip,application/x-rar-compressed'
             }),
             'event': forms.Select(attrs={
                 'class': 'form-select'
@@ -181,7 +181,7 @@ class CommentForm(forms.ModelForm):
             }),
             'attachment': forms.FileInput(attrs={
                 'class': 'form-control',
-                'accept': '.jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp'
+                'accept': '.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.avi,.webm,.mkv,.mpeg,.mpg,.3gp,.ogg,.ogv,.wav,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,image/*,video/*,audio/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/zip,application/x-rar-compressed'
             })
         }
 
